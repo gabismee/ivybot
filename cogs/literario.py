@@ -4,6 +4,7 @@ from discord.ext import commands
 from data.literary_data import frase_aleatoria, poesia_aleatoria, GENEROS, PERSONAGENS, TOP50
 from utils.api import buscar_livros
 from utils.embeds import CORES, embed_erro, FOOTER
+from utils.autor_info import buscar_autor, buscar_personagem
 
 class TopLivrosView(discord.ui.View):
     def __init__(self, paginas):
@@ -43,25 +44,26 @@ class HelpView(discord.ui.View):
             '`!perfil-frase <frase>` — muda frase',
             '`!perfil-wallpaper <url>` — muda wallpaper',
             '`!estante [status]` / `/estante ver` — mostra estante',
-            '`!lendo <livro> | <página>` — adiciona lendo',
+            '`!lendo <livro> | <página>` — adiciona lendo (página opcional)',
             '`!pagina <número> <livro>` / `/estante pagina` — atualiza página',
             '`!avaliar <1-5> <livro> | comentário` — avalia livro',
-            '`!favorito <livro>` — adiciona favorito',
+            '`!favorito <livro>` / `/favorito` — adiciona favorito',
+            '`!abandonado <livro>` — marca como abandonado',
         ],
         '🎲 Jogos e Social': [
             '`!quiz iniciar` / `/quiz iniciar` — inicia quiz',
             '`!quiz finalizar` / `/quiz finalizar` — encerra quiz',
             '`!cookie @user`, `!curtir @user`, `!cartinha @user <msg>`',
-            '`!abracar`, `!bater`, `!cafune`, `!cafe`, `!dancar`',
+            '`!abracar`, `!bater`, `!cafune`, `!cafe`, `!dancar` — roleplay com GIF',
             '`!ship @user @user`, `!ship-personagem A B`, `!duelo @user`',
         ],
         '🌙 Extras': [
             '`!frase`, `!poesia` — frases/poemas aleatórios',
-            '`!genero <nome>` — explica gênero',
-            '`!autor <nome>` — pesquisa autor',
+            '`!genero <nome>` — explica gênero literário',
+            '`!autor <nome>` — info completa do autor (foto, bio, obras)',
             '`!personagem <nome>` — pesquisa personagem',
             '`!toplivros` — top 50 paginado',
-            '`!gato`, `!cachorro`, `!animalfofo` — imagem fofa',
+            '`!gato`, `!cachorro`, `!animalfofo` / `!animal` — imagem fofa',
         ],
         '⚙️ Admin': [
             '`!boasvindas` — configura boas-vindas',
@@ -93,7 +95,7 @@ class Literario(commands.Cog):
     def __init__(self, bot): self.bot=bot
 
     def _frase_embed(self):
-        f,obra,autor=frase_aleatoria(); e=discord.Embed(title='📜 Frase literária', description=f'“{f}”', color=CORES['roxo']); e.add_field(name='Obra',value=obra,inline=True); e.add_field(name='Autor',value=autor,inline=True); e.set_footer(text=FOOTER); return e
+        f,obra,autor=frase_aleatoria(); e=discord.Embed(title='📜 Frase literária', description=f'"{f}"', color=CORES['roxo']); e.add_field(name='Obra',value=obra,inline=True); e.add_field(name='Autor',value=autor,inline=True); e.set_footer(text=FOOTER); return e
     @app_commands.command(name='frase', description='📜 Sorteia uma frase literária')
     async def frase(self, interaction): await interaction.response.send_message(embed=self._frase_embed())
     @commands.command(name='frase')
@@ -122,10 +124,34 @@ class Literario(commands.Cog):
         if not e: return await ctx.send(embed=embed_erro('Não achei esse gênero. Tente: romance, ficção científica, fantasia, terror, mangá ou mistério.'))
         await ctx.send(embed=e)
 
+    # ────────────── PERSONAGEM ──────────────
     async def _personagem_embed(self, nome):
-        p=PERSONAGENS.get(nome.lower().strip())
+        # 1. Tentar no dicionário local
+        p = PERSONAGENS.get(nome.lower().strip())
         if p:
-            title,obra,autor,desc=p; e=discord.Embed(title=f'🔎 {title}', description=desc, color=CORES['verde']); e.add_field(name='Obra', value=obra); e.add_field(name='Autor', value=autor); e.set_footer(text=FOOTER); return e
+            title, obra, autor, desc = p
+            e = discord.Embed(title=f'🔎 {title}', description=desc, color=CORES['verde'])
+            e.add_field(name='Obra', value=obra)
+            e.add_field(name='Autor', value=autor)
+            e.set_footer(text=FOOTER)
+            return e
+
+        # 2. Busca automática
+        info = await buscar_personagem(nome)
+        if info:
+            e = discord.Embed(title=f'🔎 {info["nome"]}', color=CORES['verde'])
+            if info.get('obra'):
+                e.add_field(name='📖 Obra', value=info['obra'], inline=True)
+            if info.get('autor'):
+                e.add_field(name='✍️ Autor', value=info['autor'], inline=True)
+            if info.get('descricao'):
+                e.add_field(name='📝 Descrição', value=info['descricao'][:500], inline=False)
+            if info.get('capa_url'):
+                e.set_thumbnail(url=info['capa_url'])
+            e.set_footer(text=FOOTER)
+            return e
+
+        # 3. Fallback: busca por livros relacionados
         livros = await buscar_livros(nome, 5, lang='pt')
         if livros:
             e = discord.Embed(title=f'🔎 Pesquisa de personagem: {nome}', description='Não tinha esse personagem cadastrado, mas encontrei possíveis obras relacionadas:', color=CORES['verde'])
@@ -134,9 +160,10 @@ class Literario(commands.Cog):
             e.set_footer(text=FOOTER)
             return e
         return None
+
     @app_commands.command(name='personagem', description='🔎 Pesquisa um personagem literário/mangá')
     async def personagem(self, interaction, nome:str):
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer()
         e=await self._personagem_embed(nome)
         if e: return await interaction.followup.send(embed=e)
         await interaction.followup.send('Não achei esse personagem agora. Tente nome completo ou personagem + obra.')
@@ -147,14 +174,39 @@ class Literario(commands.Cog):
         if e: return await ctx.send(embed=e)
         await ctx.send(embed=embed_erro('Não achei esse personagem agora. Tente nome completo ou personagem + obra.'))
 
+    # ────────────── AUTOR ──────────────
     async def _autor_exec(self, destino, nome):
-        livros=await buscar_livros(f'inauthor:{nome}',5,lang='pt')
+        info = await buscar_autor(nome)
+        if info:
+            e = discord.Embed(title=f'✍️ {info["nome"]}', color=CORES['laranja'])
+            if info.get('nascimento'):
+                e.description = f'🗓️ {info["nascimento"]}'
+            if info.get('bio'):
+                e.add_field(name='📖 Biografia', value=info['bio'][:700], inline=False)
+            if info.get('generos'):
+                gen_str = ', '.join(info['generos'][:5])
+                e.add_field(name='🏷️ Gêneros/temas', value=gen_str[:200], inline=False)
+            if info.get('obras'):
+                obras_str = '\n'.join(f'• {o}' for o in info['obras'][:8])
+                e.add_field(name='📚 Obras principais', value=obras_str[:1000], inline=False)
+            if info.get('foto_url'):
+                e.set_thumbnail(url=info['foto_url'])
+            e.set_footer(text=FOOTER)
+            await destino.send(embed=e)
+            return
+
+        # Fallback: Google Books apenas com lista de obras
+        livros = await buscar_livros(f'inauthor:{nome}', 5, lang='pt')
         if not livros:
-            livros=await buscar_livros(nome,5,lang='pt')
-        e=discord.Embed(title=f'✍️ {nome}', description='Obras encontradas em português:', color=CORES['laranja'])
-        if not livros: e.description='Não encontrei obras desse autor agora. Tente o nome completo ou verifique a escrita.'
-        for l in livros[:5]: e.add_field(name=l['titulo'][:60], value=f"{l.get('ano','')} • {l.get('editora','') or 'Editora não informada'}", inline=False)
-        e.set_footer(text=FOOTER); await destino.send(embed=e)
+            livros = await buscar_livros(nome, 5, lang='pt')
+        e = discord.Embed(title=f'✍️ {nome}', description='Obras encontradas:', color=CORES['laranja'])
+        if not livros:
+            e.description = 'Não encontrei obras desse autor agora. Tente o nome completo ou verifique a escrita.'
+        for l in livros[:5]:
+            e.add_field(name=l['titulo'][:60], value=f"{l.get('ano','')} • {l.get('editora','') or 'Editora não informada'}", inline=False)
+        e.set_footer(text=FOOTER)
+        await destino.send(embed=e)
+
     @app_commands.command(name='autor', description='✍️ Pesquisa um autor pelo nome')
     async def autor(self, interaction, nome:str):
         await interaction.response.defer()
@@ -166,6 +218,7 @@ class Literario(commands.Cog):
         if not nome: return await ctx.send(embed=embed_erro('Use: `!autor <nome>`'))
         await self._autor_exec(ctx, nome)
 
+    # ────────────── TOP LIVROS ──────────────
     def _top_view(self):
         paginas=[TOP50[i:i+10] for i in range(0, len(TOP50), 10)]
         return TopLivrosView(paginas)
@@ -176,6 +229,7 @@ class Literario(commands.Cog):
     async def toplivros_prefix(self, ctx):
         view=self._top_view(); await ctx.send(embed=view.embed(), view=view)
 
+    # ────────────── ANIMAIS ──────────────
     async def _animal_url(self, tipo):
         try:
             async with aiohttp.ClientSession() as s:
@@ -185,13 +239,32 @@ class Literario(commands.Cog):
                 if tipo == 'cachorro':
                     async with s.get('https://dog.ceo/api/breeds/image/random', timeout=aiohttp.ClientTimeout(total=10)) as r:
                         data=await r.json(); return data['message']
+                if tipo == 'raposa':
+                    async with s.get('https://randomfox.ca/floof/', timeout=aiohttp.ClientTimeout(total=10)) as r:
+                        data=await r.json(); return data['image']
+                if tipo == 'pato':
+                    async with s.get('https://random-d.uk/api/random', timeout=aiohttp.ClientTimeout(total=10)) as r:
+                        data=await r.json(); return data['url']
         except Exception:
             pass
-        return 'https://cataas.com/cat/says/Ivy?width=600&height=500' if tipo=='gato' else 'https://images.dog.ceo/breeds/retriever-golden/n02099601_3004.jpg'
+        fallbacks = {
+            'gato': 'https://cataas.com/cat',
+            'cachorro': 'https://images.dog.ceo/breeds/retriever-golden/n02099601_3004.jpg',
+            'raposa': 'https://randomfox.ca/images/1.jpg',
+            'pato': 'https://random-d.uk/api/1.jpg',
+        }
+        return fallbacks.get(tipo, fallbacks['gato'])
 
     async def _animal_send(self, destino, tipo):
-        url=await self._animal_url(tipo if tipo in ('gato','cachorro') else random.choice(['gato','cachorro']))
-        e=discord.Embed(title=f'🐾 {tipo.title()} fofo', color=CORES['rosa']); e.set_image(url=url); e.set_footer(text=FOOTER); await destino.send(embed=e)
+        if tipo == 'aleatorio':
+            tipo = random.choice(['gato', 'cachorro', 'raposa', 'pato'])
+        url = await self._animal_url(tipo)
+        emojis = {'gato': '🐱', 'cachorro': '🐶', 'raposa': '🦊', 'pato': '🦆'}
+        e=discord.Embed(title=f'{emojis.get(tipo,"🐾")} {tipo.title()} fofo', color=CORES['rosa'])
+        e.set_image(url=url)
+        e.set_footer(text=FOOTER)
+        await destino.send(embed=e)
+
     @app_commands.command(name='gato', description='🐱 Gera imagem de gato fofo')
     async def gato(self, interaction):
         class Dest:
@@ -202,18 +275,19 @@ class Literario(commands.Cog):
         class Dest:
             async def send(_, **kw): return await interaction.response.send_message(**kw)
         await self._animal_send(Dest(), 'cachorro')
-    @app_commands.command(name='animalfofo', description='🐾 Gera imagem de animal fofo aleatório')
+    @app_commands.command(name='animalfofo', description='🐾 Gera imagem de animal fofo aleatório (gato, cachorro, raposa ou pato)')
     async def animalfofo(self, interaction):
         class Dest:
             async def send(_, **kw): return await interaction.response.send_message(**kw)
-        await self._animal_send(Dest(), random.choice(['gato','cachorro']))
+        await self._animal_send(Dest(), 'aleatorio')
     @commands.command(name='gato')
     async def gato_prefix(self, ctx): await self._animal_send(ctx, 'gato')
     @commands.command(name='cachorro')
     async def cachorro_prefix(self, ctx): await self._animal_send(ctx, 'cachorro')
     @commands.command(name='animalfofo', aliases=['animal'])
-    async def animalfofo_prefix(self, ctx): await self._animal_send(ctx, random.choice(['gato','cachorro']))
+    async def animalfofo_prefix(self, ctx): await self._animal_send(ctx, 'aleatorio')
 
+    # ────────────── AJUDA ──────────────
     @app_commands.command(name='ajuda', description='📋 Lista comandos da Ivy por categoria')
     async def ajuda_slash(self, interaction):
         view=HelpView(); first=next(iter(HelpView.CATS))

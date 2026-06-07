@@ -92,6 +92,9 @@ class EmbedBuilder(commands.Cog):
         await ctx.send(embed=embed_sucesso(texto))
 
     def build_embed(self, titulo: str, descricao: str, cor: str, imagem: str | None, thumbnail: str | None, footer: str | None):
+        # Converte \n literal em quebra de linha real
+        descricao = descricao.replace('\\n', '\n')
+        titulo = titulo.replace('\\n', '\n')
         embed = discord.Embed(
             title=titulo[:256],
             description=descricao[:4000],

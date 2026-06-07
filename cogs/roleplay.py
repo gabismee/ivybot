@@ -1,54 +1,107 @@
-import random, io
+import random, io, os, aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from utils.embeds import CORES, FOOTER
 
-ROLEPLAY_GIFS = {
+# GIFs locais de fallback (usados se TENOR_API_KEY não estiver configurada ou API falhar)
+ROLEPLAY_GIFS_FALLBACK = {
     'abracar': [
-        'https://tenor.com/pt-BR/view/hug-anime-comfy-cute-gif-5299348585618231224',
-        'https://tenor.com/pt-BR/view/anime-hug-hugs-happy-hug-hug-friend-hug-gif-4606955245193927037',
-        'https://tenor.com/pt-BR/view/animehug-gif-4492243580644690368',
-        'https://tenor.com/pt-BR/view/fumikage-tokoyami-toshinori-yagi-all-might-mha-my-hero-academia-gif-12099486736811549373',
-        'https://tenor.com/pt-BR/view/best-brother-bro-hug-best-buds-cute-anime-boys-gif-6816284113184970956'
+        'https://media.tenor.com/5MnRTjHCPKkAAAAC/hug-anime.gif',
+        'https://media.tenor.com/c2NTX7q9AhkAAAAC/anime-hug.gif',
+        'https://media.tenor.com/yw5i_iNFYcYAAAAC/anime-hug-hugs.gif',
+        'https://media.tenor.com/oKiE1lL6FFEAAAAC/animehug.gif',
+        'https://media.tenor.com/3h0Cz6MnqEEAAAAC/hug-anime-hug.gif',
     ],
     'bater': [
-        'https://tenor.com/pt-BR/view/zero-no-tsukaima-saito-hiraga-anime-hit-gif-17655624',
-        'https://tenor.com/pt-BR/view/anime-baka-gif-10475156973113460459',
-        'https://tenor.com/pt-BR/view/อนิเมะ-gif-26038183',
-        'https://tenor.com/pt-BR/view/anime-hit-slap-ouch-angry-gif-16268549',
-        'https://tenor.com/pt-BR/view/punch-gif-11426619910221365543'
+        'https://media.tenor.com/Bkf3qx7ZlFgAAAAC/zero-no-tsukaima-saito.gif',
+        'https://media.tenor.com/pmJuDyqpNkEAAAAC/anime-baka.gif',
+        'https://media.tenor.com/t5aDInZBkiMAAAAC/anime-hit.gif',
+        'https://media.tenor.com/8DUgGLf5KJAAAAAC/anime-hit-slap.gif',
+        'https://media.tenor.com/NHxL11cVBFwAAAAC/punch.gif',
     ],
     'cafune': [
-        'https://tenor.com/pt-BR/view/runa-shirakawa-nikoru-yamana-kimizero-anime-pat-gif-2031603864025875578',
-        'https://tenor.com/pt-BR/view/subaru-rem-re-zero-re-zero-gif-5711182',
-        'https://tenor.com/pt-BR/view/pat-head-gakuen-babysitters-kotarou-anime-cute-gif-17907437',
-        'https://tenor.com/pt-BR/view/there-there-head-pat-anime-boy-sensei-kyo-sohma-gif-12375925810041523960',
-        'https://tenor.com/pt-BR/view/kaede-azusagawa-rascal-does-not-dream-of-bunny-girl-senpai-anime-girl-imouto-gif-3422144103984916185'
+        'https://media.tenor.com/2M-r8Dli_UQAAAAC/runa-shirakawa-nikoru-yamana.gif',
+        'https://media.tenor.com/CzdSfF3Kf6cAAAAC/subaru-rem.gif',
+        'https://media.tenor.com/nxRSlnKOiGoAAAAC/pat-head.gif',
+        'https://media.tenor.com/VTaHbyHXclIAAAAC/head-pat.gif',
+        'https://media.tenor.com/2vjJRnDCxZEAAAAC/kaede-azusagawa.gif',
     ],
     'cafe': [
-        'https://tenor.com/pt-BR/view/drink-gif-25664210',
-        'https://tenor.com/pt-BR/view/anime-tea-gif-25510963',
-        'https://tenor.com/pt-BR/view/gawain-fgo-fgo-gawain-fate-extra-gawain-tea-gif-2735753108991467875',
-        'https://tenor.com/pt-BR/view/spy-x-family-loid-forger-spit-take-coffee-anime-gif-25345197',
-        'https://tenor.com/pt-BR/view/kikis-delivery-service-anime-ghibli-kiki-kiki-the-witch-gif-16932897'
+        'https://media.tenor.com/nSEyXp-yBagAAAAC/drink-anime.gif',
+        'https://media.tenor.com/Bn4iRDmHYXAAAAAC/anime-tea.gif',
+        'https://media.tenor.com/AhFjZ36pFw4AAAAC/gawain-fgo.gif',
+        'https://media.tenor.com/4DWwI2EQi2sAAAAC/spy-x-family-loid-forger.gif',
+        'https://media.tenor.com/pCXz_vkFhJ8AAAAC/kikis-delivery-service-anime.gif',
     ],
     'dancar': [
-        'https://tenor.com/pt-BR/view/hare-hare-yukai-haruhi-suzumiya-gif-4547293782133915583',
-        'https://tenor.com/pt-BR/view/jujutsu-kaisen-jujutsu-kaisen-dance-anime-dance-gif-9999828832175336605',
-        'https://tenor.com/pt-BR/view/tanzen-gif-20808263',
-        'https://tenor.com/pt-BR/view/oshi-no-ko-aqua-ruby-hoshino-ai-hoshino-gif-27584383',
-        'https://tenor.com/pt-BR/view/shikanoko-shikanoko-nokonoko-koshitan-anime-dance-bully-maguire-tobey-maguire-gif-9491878829582494737'
-    ]
+        'https://media.tenor.com/uGJlCL9AJoQAAAAC/hare-hare-yukai-haruhi-suzumiya.gif',
+        'https://media.tenor.com/jNJQRrmG0u8AAAAC/jujutsu-kaisen-dance.gif',
+        'https://media.tenor.com/lnFHVUTBtkkAAAAC/tanzen.gif',
+        'https://media.tenor.com/jmP2_KjX7sUAAAAC/oshi-no-ko.gif',
+        'https://media.tenor.com/yvmErk8MXAIAAAAC/shikanoko.gif',
+    ],
 }
+
+# Termos de busca no Tenor para cada ação
+TENOR_QUERIES = {
+    'abracar': 'anime hug',
+    'bater': 'anime hit slap',
+    'cafune': 'anime head pat',
+    'cafe': 'anime drinking tea coffee',
+    'dancar': 'anime dance',
+}
+
 TEXTOS = {
     'abracar': '{autor} abraçou {alvo} bem forte! 💜',
     'bater': '{autor} deu um tapinha de anime em {alvo}! 💥',
     'cafune': '{autor} fez cafuné em {alvo}. 🥺',
     'cafe': '{autor} tomou café/chá com {alvo}. ☕',
-    'dancar': '{autor} dançou com {alvo}! ✨'
+    'dancar': '{autor} dançou com {alvo}! ✨',
 }
+
+TENOR_API_KEY = os.getenv('TENOR_API_KEY', '')
+
+async def _buscar_gif_tenor(acao: str) -> str | None:
+    """Busca um GIF aleatório no Tenor para a ação dada. Retorna URL ou None."""
+    if not TENOR_API_KEY:
+        return None
+    query = TENOR_QUERIES.get(acao, acao)
+    try:
+        async with aiohttp.ClientSession() as s:
+            params = {
+                'q': query,
+                'key': TENOR_API_KEY,
+                'limit': 20,
+                'media_filter': 'gif',
+                'contentfilter': 'medium',
+            }
+            async with s.get('https://tenor.googleapis.com/v2/search', params=params, timeout=aiohttp.ClientTimeout(total=8)) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                results = data.get('results', [])
+                if not results:
+                    return None
+                item = random.choice(results)
+                # Preferir gif > mediumgif > tinygif
+                formats = item.get('media_formats', {})
+                for fmt in ('gif', 'mediumgif', 'tinygif'):
+                    if fmt in formats:
+                        return formats[fmt].get('url')
+    except Exception:
+        return None
+    return None
+
+
+async def _obter_gif(acao: str) -> str:
+    """Obtém GIF do Tenor (se configurado) ou usa fallback local."""
+    url = await _buscar_gif_tenor(acao)
+    if url:
+        return url
+    return random.choice(ROLEPLAY_GIFS_FALLBACK[acao])
+
 
 class Roleplay(commands.Cog):
     def __init__(self, bot): self.bot = bot
@@ -58,15 +111,14 @@ class Roleplay(commands.Cog):
             texto = f'{autor.mention} fez `{acao}` consigo mesma(o). Autoamor, né?'
         else:
             texto = TEXTOS[acao].format(autor=autor.mention, alvo=alvo.mention if alvo else 'todo mundo')
-        gif_url = random.choice(ROLEPLAY_GIFS[acao])
+        gif_url = await _obter_gif(acao)
         e = discord.Embed(description=texto, color=CORES['roxo'])
+        e.set_image(url=gif_url)
         e.set_footer(text=FOOTER)
-        # Tenor links nem sempre funcionam dentro de set_image().
-        # Enviar o link junto faz o Discord abrir o GIF automaticamente.
         if hasattr(destino, 'response'):
-            await destino.response.send_message(content=gif_url, embed=e)
+            await destino.response.send_message(embed=e)
         else:
-            await destino.send(content=gif_url, embed=e)
+            await destino.send(embed=e)
 
     @app_commands.command(name='abracar', description='💜 Abraça alguém')
     async def abracar(self, interaction, usuario: discord.Member): await self.enviar_acao(interaction, interaction.user, usuario, 'abracar')
