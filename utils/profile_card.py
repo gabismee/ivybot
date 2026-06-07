@@ -1,142 +1,176 @@
-import os, io, textwrap, aiohttp
+import os, io, re, aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from utils.xp import nivel_por_xp
 
-ROOT = os.path.dirname(os.path.dirname(__file__))
-DEFAULT_BG = os.path.join(ROOT, 'assets', 'default_profile_bg.png')
+ROOT        = os.path.dirname(os.path.dirname(__file__))
+DEFAULT_BG  = os.path.join(ROOT, 'assets', 'default_profile_bg.png')
+
+# Paleta do card inferior (escuro)
+COR_CARD_BG      = (18, 18, 22)    # cinza escuro quase preto
+COR_CARD_BORDA   = (48, 44, 58)
+COR_TEXTO_NOME   = (245, 240, 255) # branco levemente roxo
+COR_TEXTO_FRASE  = (210, 205, 220) # texto claro
+COR_BARRA_BG     = (45, 42, 52)
+COR_BARRA_FILL   = (155, 89, 182)  # roxo
+COR_BARRA_TEXTO  = (210, 195, 225)
+COR_STAT_BG      = (30, 30, 36)
+COR_STAT_BORDA   = (58, 52, 72)
+COR_STAT_VAL     = (245, 235, 255)
+COR_STAT_LABEL   = (185, 175, 200)
+COR_AV_BORDA     = (155, 89, 182)
+
+# Labels das estatísticas (sem emoji para evitar quadrados)
+STAT_LABELS = [
+    ('Livros lidos', 'lidos'),
+    ('Streak',       'streak_perfil'),   # vem do perfil
+    ('Media',        'media_avaliacao'),
+    ('Quer ler',     'wishlist'),
+    ('Cookies',      'cookies'),
+    ('Curtidas',     'curtidas'),
+    ('Cartas',       'cartinhas'),
+]
 
 
 def _font(size=28, bold=False):
     paths = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf'
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'    if bold else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+        '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf'     if bold else '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
     ]
     for p in paths:
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
+        if os.path.exists(p): return ImageFont.truetype(p, size)
     return ImageFont.load_default()
 
 
 async def _download_image(url):
-    if not url:
-        return None
+    if not url: return None
     try:
         async with aiohttp.ClientSession() as s:
-            async with s.get(url, timeout=aiohttp.ClientTimeout(total=10), headers={'User-Agent': 'IvyBot/1.0'}) as r:
-                if r.status != 200:
-                    return None
-                data = await r.read()
-                return Image.open(io.BytesIO(data)).convert('RGB')
+            async with s.get(url, timeout=aiohttp.ClientTimeout(total=10), headers={'User-Agent': 'IvyBot/2.0'}) as r:
+                if r.status != 200: return None
+                return Image.open(io.BytesIO(await r.read())).convert('RGB')
     except Exception:
         return None
 
 
 def _cover(img, size):
     img = img.convert('RGB')
-    w, h = img.size
-    tw, th = size
-    scale = max(tw / w, th / h)
-    nw, nh = int(w * scale), int(h * scale)
+    w, h = img.size; tw, th = size
+    scale = max(tw/w, th/h)
+    nw, nh = int(w*scale), int(h*scale)
     img = img.resize((nw, nh), Image.LANCZOS)
-    return img.crop(((nw - tw) // 2, (nh - th) // 2, (nw + tw) // 2, (nh + th) // 2))
+    return img.crop(((nw-tw)//2, (nh-th)//2, (nw+tw)//2, (nh+th)//2))
 
 
-def _wrap_text(draw, text, font, max_width, max_lines=3):
-    text = str(text or '').replace('\n', ' ')
-    words = text.split()
-    lines, current = [], ''
+def _safe(text):
+    """Remove caracteres fora do range latino (evita quadrados em imgs)."""
+    return re.sub(r'[^\x00-\x7FÀ-ÿ ]', '', str(text or '')).strip()
 
-    def fits(t):
-        bbox = draw.textbbox((0, 0), t, font=font)
-        return bbox[2] - bbox[0] <= max_width
 
-    for word in words:
-        # Quebra palavras/títulos enormes para não vazar do card.
-        if not fits(word):
-            chunks = []
-            chunk = ''
-            for ch in word:
-                if fits(chunk + ch):
-                    chunk += ch
-                else:
-                    if chunk:
-                        chunks.append(chunk)
-                    chunk = ch
-            if chunk:
-                chunks.append(chunk)
+def _wrap(draw, text, font, max_w, max_lines=2):
+    words = text.split(); lines, cur = [], ''
+    for w in words:
+        test = (cur + ' ' + w).strip()
+        if draw.textbbox((0,0), test, font=font)[2] <= max_w:
+            cur = test
         else:
-            chunks = [word]
-
-        for part in chunks:
-            test = (current + ' ' + part).strip()
-            if fits(test):
-                current = test
-            else:
-                if current:
-                    lines.append(current)
-                current = part
-            if len(lines) >= max_lines:
-                break
-        if len(lines) >= max_lines:
-            break
-
-    if current and len(lines) < max_lines:
-        lines.append(current)
-    if len(lines) == max_lines and words:
-        # coloca reticências se o texto continuou
-        joined = ' '.join(lines)
-        if len(joined) < len(text):
-            last = lines[-1]
-            while last and not fits(last + '...'):
-                last = last[:-1]
-            lines[-1] = (last + '...') if last else '...'
+            if cur: lines.append(cur)
+            cur = w
+        if len(lines) >= max_lines: break
+    if cur and len(lines) < max_lines: lines.append(cur)
     return lines[:max_lines]
 
 
 async def gerar_profile_card(member, perfil, stats):
-    W, H = 900, 620
+    W, H      = 900, 640
+    WALL_H    = 210   # wallpaper ocupa só o topo
+    AV_SIZE   = 112
+    CARD_Y    = WALL_H + 8
+
+    # ── 1. Wallpaper ──────────────────────────────────────────────────────────
     bg = await _download_image(perfil.get('wallpaper_url'))
     if bg is None:
-        bg = Image.open(DEFAULT_BG).convert('RGB') if os.path.exists(DEFAULT_BG) else Image.new('RGB', (W, 260), (54, 35, 86))
-    bg = _cover(bg, (W, 260)).filter(ImageFilter.GaussianBlur(0.2))
-    canvas = Image.new('RGB', (W, H), (246, 241, 249))
-    canvas.paste(bg, (0, 0))
+        bg = Image.open(DEFAULT_BG).convert('RGB') if os.path.exists(DEFAULT_BG) \
+             else Image.new('RGB', (W, WALL_H), (54, 35, 86))
+    bg = _cover(bg, (W, WALL_H)).filter(ImageFilter.GaussianBlur(0.3))
+
+    # ── 2. Canvas ─────────────────────────────────────────────────────────────
+    canvas = Image.new('RGB', (W, H), COR_CARD_BG)
+    canvas.paste(bg, (0, 0))  # wallpaper colado no topo
+
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle((35, 230, 865, 590), radius=32, fill=(255, 255, 255), outline=(226, 214, 235), width=3)
+
+    # Card inferior escuro (do fim do wallpaper até embaixo)
+    d.rounded_rectangle(
+        (0, CARD_Y, W, H),
+        radius=0,
+        fill=COR_CARD_BG,
+    )
+    # Linha divisória sutil no topo do card
+    d.line([(0, CARD_Y), (W, CARD_Y)], fill=COR_CARD_BORDA, width=2)
+
+    # ── 3. Avatar (metade no wallpaper, metade no card) ───────────────────────
+    AV_X = 48
+    AV_Y = WALL_H - AV_SIZE // 2
+
     avatar = await _download_image(str(member.display_avatar.url))
     if avatar:
-        avatar = _cover(avatar, (128, 128)).convert('RGBA')
-        mask = Image.new('L', (128, 128), 0)
-        md = ImageDraw.Draw(mask)
-        md.ellipse((0, 0, 128, 128), fill=255)
-        canvas.paste(avatar, (70, 270), mask)
-        d.ellipse((70, 270, 198, 398), outline=(155, 89, 182), width=5)
-    nome = member.display_name[:26]
-    frase = perfil.get('frase') or 'Livros são minha fuga favorita.'
+        avatar = _cover(avatar, (AV_SIZE, AV_SIZE)).convert('RGBA')
+        mask   = Image.new('L', (AV_SIZE, AV_SIZE), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, AV_SIZE, AV_SIZE), fill=255)
+        # borda escura + roxo
+        d.ellipse((AV_X-5, AV_Y-5, AV_X+AV_SIZE+5, AV_Y+AV_SIZE+5), fill=COR_CARD_BG)
+        d.ellipse((AV_X-3, AV_Y-3, AV_X+AV_SIZE+3, AV_Y+AV_SIZE+3), outline=COR_AV_BORDA, width=4)
+        canvas.paste(avatar, (AV_X, AV_Y), mask)
+
+    # ── 4. Nome e frase ───────────────────────────────────────────────────────
+    INFO_X = AV_X + AV_SIZE + 18
+    INFO_Y = CARD_Y + 14
+
+    nome_safe  = _safe(member.display_name)[:28] or member.name[:28]
+    frase_safe = _safe(perfil.get('frase') or 'Livros sao minha fuga favorita.')
+
+    d.text((INFO_X, INFO_Y), nome_safe, font=_font(38, True), fill=COR_TEXTO_NOME)
+
+    f_font = _font(20)
+    for i, line in enumerate(_wrap(d, f'"{frase_safe}"', f_font, W - INFO_X - 50, 2)):
+        d.text((INFO_X, INFO_Y + 46 + i * 24), line, font=f_font, fill=COR_TEXTO_FRASE)
+
+    # ── 5. Barra de XP ────────────────────────────────────────────────────────
     xp = int(perfil.get('xp') or 0)
     nivel, atual, prox = nivel_por_xp(xp)
-    d.text((220, 270), nome, font=_font(42, True), fill=(48, 35, 58))
-    frase_font = _font(22)
-    for i, line in enumerate(_wrap_text(d, f'“{frase}”', frase_font, 610, 2)):
-        d.text((220, 322 + i * 26), line, font=frase_font, fill=(97, 76, 112))
-    barra_x, barra_y = 220, 382
-    barra_w = 560
-    pct = min(1, atual / max(1, prox))
-    d.rounded_rectangle((barra_x, barra_y, barra_x + barra_w, barra_y + 22), radius=11, fill=(230, 222, 235))
-    d.rounded_rectangle((barra_x, barra_y, barra_x + int(barra_w * pct), barra_y + 22), radius=11, fill=(155, 89, 182))
-    d.text((barra_x, barra_y + 30), f'Nível {nivel} • XP {xp} ({atual}/{prox})', font=_font(22, True), fill=(75, 55, 86))
-    cards = [
-        ('Livros lidos', stats.get('lidos', 0)), ('Streak', perfil.get('streak', 0)),
-        ('Média', stats.get('media_avaliacao', 0)), ('Quero ler', stats.get('wishlist', 0)),
-        ('Cookies', stats.get('cookies', 0)), ('Curtidas', stats.get('curtidas', 0)), ('Cartinhas', stats.get('cartinhas', 0))
-    ]
-    x, y = 70, 465
-    for i, (label, val) in enumerate(cards):
-        cx = x + (i % 4) * 200
-        cy = y + (i // 4) * 72
-        d.rounded_rectangle((cx, cy, cx + 175, cy + 55), radius=16, fill=(248, 244, 251), outline=(228, 218, 236))
-        d.text((cx + 14, cy + 8), str(val), font=_font(24, True), fill=(66, 44, 78))
-        d.text((cx + 14, cy + 32), label, font=_font(15), fill=(110, 90, 125))
+    BAR_X = 48
+    BAR_Y = CARD_Y + 132
+    BAR_W = W - 96
+    pct   = min(1.0, atual / max(1, prox))
+
+    d.rounded_rectangle((BAR_X, BAR_Y, BAR_X + BAR_W, BAR_Y + 16), radius=8, fill=COR_BARRA_BG)
+    if pct > 0:
+        d.rounded_rectangle((BAR_X, BAR_Y, BAR_X + int(BAR_W * pct), BAR_Y + 16), radius=8, fill=COR_BARRA_FILL)
+    d.text((BAR_X, BAR_Y + 22), f'Nivel {nivel}  |  XP {xp}  ({atual}/{prox})', font=_font(18, True), fill=COR_BARRA_TEXTO)
+
+    # ── 6. Cards de estatísticas ──────────────────────────────────────────────
+    # streak vem do perfil, o resto de stats
+    combined = dict(stats)
+    combined['streak_perfil'] = perfil.get('streak', 0)
+
+    STAT_Y   = CARD_Y + 178
+    CARD_W   = 182
+    CARD_H   = 58
+    GAP      = 10
+    cols     = 4
+
+    for i, (label, key) in enumerate(STAT_LABELS):
+        col = i % cols
+        row = i // cols
+        cx  = 48 + col * (CARD_W + GAP)
+        cy  = STAT_Y + row * (CARD_H + GAP)
+        d.rounded_rectangle((cx, cy, cx + CARD_W, cy + CARD_H), radius=12,
+                             fill=COR_STAT_BG, outline=COR_STAT_BORDA, width=1)
+        val = combined.get(key, 0)
+        d.text((cx + 12, cy + 6),  str(val), font=_font(22, True), fill=COR_STAT_VAL)
+        d.text((cx + 12, cy + 32), label,    font=_font(13),       fill=COR_STAT_LABEL)
+
     bio = io.BytesIO()
     canvas.save(bio, 'PNG')
     bio.seek(0)
@@ -145,39 +179,55 @@ async def gerar_profile_card(member, perfil, stats):
 
 async def gerar_estante_card(member, itens, titulo='Estante'):
     W, H = 1100, 760
-    canvas = Image.new('RGB', (W, H), (246, 241, 249))
-    d = ImageDraw.Draw(canvas)
-    d.text((40, 30), f'{titulo} de {member.display_name}', font=_font(42, True), fill=(50, 35, 60))
-    x, y = 45, 110
+    canvas = Image.new('RGB', (W, H), COR_CARD_BG)
+    d      = ImageDraw.Draw(canvas)
+
+    titulo_safe = _safe(titulo) or titulo
+    nome_safe   = _safe(member.display_name) or member.name
+    d.text((40, 28), f'{titulo_safe} de {nome_safe}', font=_font(36, True), fill=COR_TEXTO_NOME)
+
+    CARD_W, CARD_H = 244, 188
+    GAP_X,  GAP_Y  = 16,  16
+    x, y, cols     = 40, 100, 4
+
     for idx, item in enumerate(itens[:12]):
-        col = idx % 4
-        row = idx // 4
-        cx = x + col * 260
-        cy = y + row * 205
-        d.rounded_rectangle((cx, cy, cx + 235, cy + 180), radius=18, fill=(255, 255, 255), outline=(226, 214, 235), width=2)
+        col = idx % cols
+        row = idx // cols
+        cx  = x + col * (CARD_W + GAP_X)
+        cy  = y + row * (CARD_H + GAP_Y)
+        d.rounded_rectangle((cx, cy, cx + CARD_W, cy + CARD_H), radius=14,
+                             fill=COR_STAT_BG, outline=COR_STAT_BORDA, width=1)
+
+        # Capa
         cover = await _download_image(item.get('capa_url'))
         if cover:
-            cover = _cover(cover, (74, 112))
-            canvas.paste(cover, (cx + 12, cy + 18))
-        title_font = _font(16, True)
-        author_font = _font(13)
-        tx = cx + 96
-        ty = cy + 16
-        for line in _wrap_text(d, item.get('titulo', ''), title_font, 125, 3):
-            d.text((tx, ty), line, font=title_font, fill=(50, 35, 60))
-            ty += 20
-        ay = max(ty + 4, cy + 80)
-        for line in _wrap_text(d, item.get('autor', ''), author_font, 125, 2):
-            d.text((tx, ay), line, font=author_font, fill=(90, 75, 100))
-            ay += 17
+            cover = _cover(cover, (66, 100))
+            canvas.paste(cover, (cx + 10, cy + 12))
+
+        # Textos ao lado da capa
+        tx, ty  = cx + 86, cy + 12
+        max_w   = CARD_W - 86 - 8
+        t_font  = _font(13, True)
+        a_font  = _font(12)
+        titulo_l = _safe(item.get('titulo', ''))
+        autor_l  = _safe(item.get('autor', ''))
+
+        for line in _wrap(d, titulo_l, t_font, max_w, 3):
+            d.text((tx, ty), line, font=t_font, fill=COR_TEXTO_NOME); ty += 17
+        ay = max(ty + 4, cy + 72)
+        for line in _wrap(d, autor_l, a_font, max_w, 2):
+            d.text((tx, ay), line, font=a_font, fill=COR_TEXTO_FRASE); ay += 15
+
         nota = int(item.get('avaliacao') or 0)
         if nota:
-            d.text((tx, cy + 124), '★' * nota + '☆' * (5 - nota), font=_font(15), fill=(138, 102, 25))
-        pagina = int(item.get('pagina_atual') or 0)
-        total = int(item.get('total_paginas') or 0)
-        if pagina or total:
-            prog = f'Pág. {pagina}' + (f'/{total}' if total else '')
-            d.text((tx, cy + 148), prog, font=_font(13, True), fill=(105, 72, 124))
+            d.text((tx, cy + 126), '*' * nota + '-' * (5 - nota), font=_font(13), fill=(200, 160, 60))
+
+        pag = int(item.get('pagina_atual') or 0)
+        tot = int(item.get('total_paginas') or 0)
+        if pag or tot:
+            prog = f'Pag. {pag}' + (f'/{tot}' if tot else '')
+            d.text((tx, cy + 148), prog, font=_font(12, True), fill=COR_STAT_LABEL)
+
     bio = io.BytesIO()
     canvas.save(bio, 'PNG')
     bio.seek(0)

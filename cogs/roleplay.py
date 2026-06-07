@@ -1,12 +1,14 @@
-import random, io
+import random, io, os, aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from utils.embeds import CORES, FOOTER
-from utils.media import tenor_gif_from_id, tenor_search_gif
 
-ROLEPLAY_GIFS = {
+# IDs dos GIFs escolhidos no Tenor para cada ação.
+# O bot usa a API do Tenor para transformar o ID em URL direta de GIF.
+# Não precisa configurar chave agora: usamos a chave pública de teste como fallback.
+TENOR_POST_IDS = {
     'abracar': [
         '5299348585618231224',
         '4606955245193927037',
@@ -18,46 +20,111 @@ ROLEPLAY_GIFS = {
         '17655624',
         '10475156973113460459',
         '26038183',
-        '16268549',
-        '11426619910221365543',
     ],
     'cafune': [
         '2031603864025875578',
-        '5711182',
-        '17907437',
         '12375925810041523960',
-        '3422144103984916185',
     ],
     'cafe': [
         '25664210',
-        '25510963',
-        '2735753108991467875',
-        '25345197',
         '16932897',
+        '25345197',
     ],
     'dancar': [
-        '4547293782133915583',
-        '9999828832175336605',
-        '20808263',
-        '27584383',
         '9491878829582494737',
+        '27584383',
     ],
 }
 
-ROLEPLAY_SEARCH_TERMS = {
+# Se algum ID falhar, o bot busca por termo.
+TENOR_QUERIES = {
     'abracar': 'anime hug',
     'bater': 'anime slap',
     'cafune': 'anime head pat',
-    'cafe': 'anime coffee anime tea',
+    'cafe': 'anime coffee tea',
     'dancar': 'anime dance',
 }
+
+# Último fallback estático, só para nunca deixar o comando sem imagem.
+ROLEPLAY_GIFS_FALLBACK = {
+    'abracar': ['https://media.tenor.com/CzdSfF3Kf6cAAAAC/subaru-rem.gif'],
+    'bater': ['https://media.tenor.com/8DUgGLf5KJAAAAAC/anime-hit-slap.gif'],
+    'cafune': ['https://media.tenor.com/nxRSlnKOiGoAAAAC/pat-head.gif'],
+    'cafe': ['https://media.tenor.com/4DWwI2EQi2sAAAAC/spy-x-family-loid-forger.gif'],
+    'dancar': ['https://media.tenor.com/jmP2_KjX7sUAAAAC/oshi-no-ko.gif'],
+}
+
 TEXTOS = {
     'abracar': '{autor} abraçou {alvo} bem forte! 💜',
     'bater': '{autor} deu um tapinha de anime em {alvo}! 💥',
     'cafune': '{autor} fez cafuné em {alvo}. 🥺',
     'cafe': '{autor} tomou café/chá com {alvo}. ☕',
-    'dancar': '{autor} dançou com {alvo}! ✨'
+    'dancar': '{autor} dançou com {alvo}! ✨',
 }
+
+TENOR_API_KEY = os.getenv('TENOR_API_KEY', 'LIVDSRZULELA')
+
+async def _gif_url_from_tenor_item(item: dict) -> str | None:
+    """Extrai uma URL direta de GIF de um item retornado pela API v2 do Tenor."""
+    formats = item.get('media_formats', {}) or {}
+    for fmt in ('gif', 'mediumgif', 'tinygif'):
+        url = (formats.get(fmt) or {}).get('url')
+        if url:
+            return url
+    return None
+
+
+async def _buscar_gif_tenor(acao: str) -> str | None:
+    """Busca um GIF no Tenor: primeiro pelos IDs escolhidos, depois por pesquisa."""
+    key = TENOR_API_KEY or 'LIVDSRZULELA'
+    timeout = aiohttp.ClientTimeout(total=8)
+    headers = {'User-Agent': 'IvyBot/2.0 Discord Bot'}
+    try:
+        async with aiohttp.ClientSession(headers=headers) as s:
+            # 1) Usar exatamente os GIFs escolhidos pela Gabi, via data-postid do Tenor.
+            ids = TENOR_POST_IDS.get(acao) or []
+            if ids:
+                gif_id = random.choice(ids)
+                params = {'ids': gif_id, 'key': key, 'media_filter': 'gif,mediumgif,tinygif'}
+                async with s.get('https://tenor.googleapis.com/v2/posts', params=params, timeout=timeout) as r:
+                    if r.status == 200:
+                        data = await r.json()
+                        results = data.get('results', [])
+                        if results:
+                            url = await _gif_url_from_tenor_item(results[0])
+                            if url:
+                                return url
+
+            # 2) Se o ID falhar, busca por termo relacionado à ação.
+            query = TENOR_QUERIES.get(acao, acao)
+            params = {
+                'q': query,
+                'key': key,
+                'limit': 20,
+                'media_filter': 'gif,mediumgif,tinygif',
+                'contentfilter': 'medium',
+                'locale': 'pt_BR',
+            }
+            async with s.get('https://tenor.googleapis.com/v2/search', params=params, timeout=timeout) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                results = data.get('results', [])
+                if not results:
+                    return None
+                item = random.choice(results)
+                return await _gif_url_from_tenor_item(item)
+    except Exception:
+        return None
+    return None
+
+async def _obter_gif(acao: str) -> str:
+    """Obtém GIF do Tenor (se configurado) ou usa fallback local."""
+    url = await _buscar_gif_tenor(acao)
+    if url:
+        return url
+    return random.choice(ROLEPLAY_GIFS_FALLBACK[acao])
+
 
 class Roleplay(commands.Cog):
     def __init__(self, bot): self.bot = bot
@@ -67,24 +134,9 @@ class Roleplay(commands.Cog):
             texto = f'{autor.mention} fez `{acao}` consigo mesma(o). Autoamor, né?'
         else:
             texto = TEXTOS[acao].format(autor=autor.mention, alvo=alvo.mention if alvo else 'todo mundo')
-        # Busca o GIF direto pela API do Tenor usando o ID escolhido.
-        # A função usa TENOR_API_KEY do Render ou a chave de teste LIVDSRZULELA.
-        gif_id = random.choice(ROLEPLAY_GIFS[acao])
-        gif_url = await tenor_gif_from_id(gif_id)
-
-        # Se algum ID falhar, tenta busca por termo como plano B.
-        if not gif_url:
-            gif_url = await tenor_search_gif(ROLEPLAY_SEARCH_TERMS.get(acao, 'anime reaction'))
-
+        gif_url = await _obter_gif(acao)
         e = discord.Embed(description=texto, color=CORES['roxo'])
-        if gif_url:
-            e.set_image(url=gif_url)
-        else:
-            e.add_field(
-                name='GIF indisponível',
-                value='Não consegui carregar o GIF agora. Tenta de novo em alguns segundos.',
-                inline=False,
-            )
+        e.set_image(url=gif_url)
         e.set_footer(text=FOOTER)
         if hasattr(destino, 'response'):
             await destino.response.send_message(embed=e)

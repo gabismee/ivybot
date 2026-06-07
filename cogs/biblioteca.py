@@ -123,11 +123,6 @@ class Biblioteca(commands.Cog):
     @commands.command(name='lido', aliases=['concluido','concluído'])
     async def lido_prefix(self, ctx, *, titulo: str=None): await self._add_estante_prefix(ctx, 'lido', titulo)
 
-    @commands.command(name='abandonado', aliases=['abandonei','parado','parei'])
-    async def abandonado_prefix(self, ctx, *, titulo: str=None):
-        # Use: !abandonado Nome do livro | 120  (página onde parou)
-        await self._add_estante_prefix(ctx, 'abandonado', titulo)
-
     @commands.command(name='favorito', aliases=['favoritar'])
     async def favorito_prefix(self, ctx, *, titulo: str=None): await self._add_estante_prefix(ctx, 'favorito', titulo)
 
