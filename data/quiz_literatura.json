@@ -1,0 +1,1102 @@
+[
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual personagem é conhecido por sua dúvida sobre Capitu?",
+    "opcoes": [
+      "Bentinho",
+      "Brás Cubas",
+      "Jeca Tatu",
+      "Iracema"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Pequeno Príncipe?",
+    "opcoes": [
+      "Antoine de Saint-Exupéry",
+      "J. K. Rowling",
+      "Tolkien",
+      "Machado de Assis"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Em qual país nasceu Shakespeare?",
+    "opcoes": [
+      "França",
+      "Inglaterra",
+      "Itália",
+      "Espanha"
+    ],
+    "resposta": "B",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Harry Potter?",
+    "opcoes": [
+      "Suzanne Collins",
+      "J. K. Rowling",
+      "Cassandra Clare",
+      "Veronica Roth"
+    ],
+    "resposta": "B",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o nome do hobbit protagonista de O Senhor dos Anéis?",
+    "opcoes": [
+      "Sam",
+      "Frodo",
+      "Merry",
+      "Pippin"
+    ],
+    "resposta": "B",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Hora da Estrela?",
+    "opcoes": [
+      "Clarice Lispector",
+      "Cecília Meireles",
+      "Rachel de Queiroz",
+      "Lygia Fagundes Telles"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem criou Emília?",
+    "opcoes": [
+      "Monteiro Lobato",
+      "Ziraldo",
+      "Ruth Rocha",
+      "Maurício de Sousa"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o gênero de Romeu e Julieta?",
+    "opcoes": [
+      "Terror",
+      "Comédia",
+      "Tragédia",
+      "Suspense"
+    ],
+    "resposta": "C",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Memórias Póstumas de Brás Cubas?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Graciliano Ramos",
+      "Jorge Amado"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Percy Jackson?",
+    "opcoes": [
+      "Rick Riordan",
+      "Tolkien",
+      "Rowling",
+      "Lewis"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Cortiço?",
+    "opcoes": [
+      "Aluísio Azevedo",
+      "Machado de Assis",
+      "Lima Barreto",
+      "Euclides da Cunha"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual animal acompanha o Pequeno Príncipe?",
+    "opcoes": [
+      "Raposa",
+      "Cachorro",
+      "Gato",
+      "Coelho"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Capitães da Areia?",
+    "opcoes": [
+      "Jorge Amado",
+      "Graciliano Ramos",
+      "Drummond",
+      "Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Alice no País das Maravilhas?",
+    "opcoes": [
+      "Lewis Carroll",
+      "Tolkien",
+      "Rowling",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Vinte Mil Léguas Submarinas?",
+    "opcoes": [
+      "Júlio Verne",
+      "Machado de Assis",
+      "Shakespeare",
+      "Orwell"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a profissão de Sherlock Holmes?",
+    "opcoes": [
+      "Detetive",
+      "Médico",
+      "Professor",
+      "Advogado"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem criou Sherlock Holmes?",
+    "opcoes": [
+      "Arthur Conan Doyle",
+      "Agatha Christie",
+      "Poe",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu 1984?",
+    "opcoes": [
+      "George Orwell",
+      "Tolkien",
+      "Dickens",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Menino Maluquinho?",
+    "opcoes": [
+      "Ziraldo",
+      "Maurício de Sousa",
+      "Lobato",
+      "Ruth Rocha"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a casa de Harry Potter?",
+    "opcoes": [
+      "Sonserina",
+      "Corvinal",
+      "Grifinória",
+      "Lufa-Lufa"
+    ],
+    "resposta": "C",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Iracema?",
+    "opcoes": [
+      "José de Alencar",
+      "Machado de Assis",
+      "Jorge Amado",
+      "Aluísio Azevedo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem é a autora de Orgulho e Preconceito?",
+    "opcoes": [
+      "Jane Austen",
+      "Emily Brontë",
+      "Agatha Christie",
+      "Virginia Woolf"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Alienista?",
+    "opcoes": [
+      "Machado de Assis",
+      "Lobato",
+      "Graciliano Ramos",
+      "José de Alencar"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu As Crônicas de Nárnia?",
+    "opcoes": [
+      "C. S. Lewis",
+      "Tolkien",
+      "Rowling",
+      "Riordan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o nome do dragão de O Hobbit?",
+    "opcoes": [
+      "Smaug",
+      "Drogon",
+      "Fafnir",
+      "Norberto"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Hobbit?",
+    "opcoes": [
+      "J. R. R. Tolkien",
+      "Lewis",
+      "Rowling",
+      "Riordan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Grande Sertão: Veredas?",
+    "opcoes": [
+      "João Guimarães Rosa",
+      "Machado de Assis",
+      "Jorge Amado",
+      "Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Diário de Anne Frank?",
+    "opcoes": [
+      "Anne Frank",
+      "Jane Austen",
+      "Clarice Lispector",
+      "Cecília Meireles"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Revolução dos Bichos?",
+    "opcoes": [
+      "George Orwell",
+      "Tolkien",
+      "Dickens",
+      "Poe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual destes é um livro de Agatha Christie?",
+    "opcoes": [
+      "Assassinato no Expresso do Oriente",
+      "O Hobbit",
+      "Dom Casmurro",
+      "Percy Jackson"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Os Lusíadas?",
+    "opcoes": [
+      "Luís de Camões",
+      "Fernando Pessoa",
+      "Machado de Assis",
+      "Eça de Queirós"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem criou a Turma da Mônica?",
+    "opcoes": [
+      "Maurício de Sousa",
+      "Ziraldo",
+      "Lobato",
+      "Ruth Rocha"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual personagem é uma boneca falante?",
+    "opcoes": [
+      "Emília",
+      "Magali",
+      "Mônica",
+      "Narizinho"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Quixote?",
+    "opcoes": [
+      "Miguel de Cervantes",
+      "Shakespeare",
+      "Camões",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Menina que Roubava Livros?",
+    "opcoes": [
+      "Markus Zusak",
+      "John Green",
+      "Stephen King",
+      "Rick Riordan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual personagem mora na Rua dos Alfeneiros, nº 4?",
+    "opcoes": [
+      "Harry Potter",
+      "Percy Jackson",
+      "Frodo",
+      "Bilbo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Jogos Vorazes?",
+    "opcoes": [
+      "Suzanne Collins",
+      "Veronica Roth",
+      "Cassandra Clare",
+      "J. K. Rowling"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a protagonista de Jogos Vorazes?",
+    "opcoes": [
+      "Katniss Everdeen",
+      "Tris Prior",
+      "Clary Fray",
+      "Bella Swan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Crepúsculo?",
+    "opcoes": [
+      "Stephenie Meyer",
+      "Suzanne Collins",
+      "J. K. Rowling",
+      "Cassandra Clare"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual criatura é Edward Cullen?",
+    "opcoes": [
+      "Vampiro",
+      "Lobisomem",
+      "Bruxo",
+      "Elfo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Culpa é das Estrelas?",
+    "opcoes": [
+      "John Green",
+      "Nicholas Sparks",
+      "Markus Zusak",
+      "Rick Riordan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a protagonista de A Culpa é das Estrelas?",
+    "opcoes": [
+      "Hazel Grace",
+      "Bella Swan",
+      "Katniss",
+      "Tris"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Código Da Vinci?",
+    "opcoes": [
+      "Dan Brown",
+      "Stephen King",
+      "Tolkien",
+      "Orwell"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Drácula?",
+    "opcoes": [
+      "Bram Stoker",
+      "Edgar Allan Poe",
+      "Stephen King",
+      "Lovecraft"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem criou Hercule Poirot?",
+    "opcoes": [
+      "Agatha Christie",
+      "Conan Doyle",
+      "Poe",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o melhor amigo de Harry Potter?",
+    "opcoes": [
+      "Rony Weasley",
+      "Neville",
+      "Draco",
+      "Cedrico"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Frankenstein?",
+    "opcoes": [
+      "Mary Shelley",
+      "Jane Austen",
+      "Emily Brontë",
+      "Agatha Christie"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Médico e o Monstro?",
+    "opcoes": [
+      "Robert Louis Stevenson",
+      "Poe",
+      "Orwell",
+      "Tolkien"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Pollyanna?",
+    "opcoes": [
+      "Eleanor Porter",
+      "Louisa May Alcott",
+      "Jane Austen",
+      "Anne Frank"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Mágico de Oz?",
+    "opcoes": [
+      "L. Frank Baum",
+      "Lewis Carroll",
+      "Tolkien",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a menina de O Mágico de Oz?",
+    "opcoes": [
+      "Dorothy",
+      "Alice",
+      "Wendy",
+      "Pollyanna"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Peter Pan?",
+    "opcoes": [
+      "J. M. Barrie",
+      "Lewis",
+      "Verne",
+      "Twain"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual personagem não queria crescer?",
+    "opcoes": [
+      "Peter Pan",
+      "Harry Potter",
+      "Frodo",
+      "Percy"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Tom Sawyer?",
+    "opcoes": [
+      "Mark Twain",
+      "Dickens",
+      "Verne",
+      "Poe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Oliver Twist?",
+    "opcoes": [
+      "Charles Dickens",
+      "Twain",
+      "Austen",
+      "Orwell"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Robinson Crusoé?",
+    "opcoes": [
+      "Daniel Defoe",
+      "Verne",
+      "Stevenson",
+      "Poe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Moby Dick?",
+    "opcoes": [
+      "Herman Melville",
+      "Verne",
+      "Poe",
+      "Defoe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual animal é Moby Dick?",
+    "opcoes": [
+      "Baleia",
+      "Tubarão",
+      "Golfinho",
+      "Polvo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Corvo?",
+    "opcoes": [
+      "Edgar Allan Poe",
+      "Shakespeare",
+      "Orwell",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Fantasma da Ópera?",
+    "opcoes": [
+      "Gaston Leroux",
+      "Poe",
+      "Verne",
+      "Dickens"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Ilha do Tesouro?",
+    "opcoes": [
+      "Robert Louis Stevenson",
+      "Verne",
+      "Poe",
+      "Twain"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual pirata famoso aparece na literatura?",
+    "opcoes": [
+      "Long John Silver",
+      "Sherlock Holmes",
+      "Frodo",
+      "Aslan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu As Aventuras de Pinóquio?",
+    "opcoes": [
+      "Carlo Collodi",
+      "Andersen",
+      "Grimm",
+      "Perrault"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "O nariz de Pinóquio cresce quando ele:",
+    "opcoes": [
+      "Mente",
+      "Corre",
+      "Grita",
+      "Chora"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Patinho Feio?",
+    "opcoes": [
+      "Hans Christian Andersen",
+      "Irmãos Grimm",
+      "Perrault",
+      "Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Chapeuzinho Vermelho?",
+    "opcoes": [
+      "Charles Perrault",
+      "Andersen",
+      "Grimm",
+      "Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Branca de Neve?",
+    "opcoes": [
+      "Irmãos Grimm",
+      "Andersen",
+      "Perrault",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Rapunzel?",
+    "opcoes": [
+      "Irmãos Grimm",
+      "Andersen",
+      "Perrault",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual personagem tinha cabelos muito longos?",
+    "opcoes": [
+      "Rapunzel",
+      "Alice",
+      "Dorothy",
+      "Wendy"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual animal Alice segue até a toca?",
+    "opcoes": [
+      "Coelho Branco",
+      "Raposa",
+      "Gato",
+      "Corvo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Diário de um Banana?",
+    "opcoes": [
+      "Jeff Kinney",
+      "Dav Pilkey",
+      "Rowling",
+      "Riordan"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o protagonista de Diário de um Banana?",
+    "opcoes": [
+      "Greg Heffley",
+      "Rodrick",
+      "Manny",
+      "Percy"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem é o pai de Percy Jackson?",
+    "opcoes": [
+      "Poseidon",
+      "Zeus",
+      "Hades",
+      "Ares"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual deus grego controla os mares?",
+    "opcoes": [
+      "Poseidon",
+      "Zeus",
+      "Hermes",
+      "Apolo"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu As Vantagens de Ser Invisível?",
+    "opcoes": [
+      "Stephen Chbosky",
+      "John Green",
+      "Nicholas Sparks",
+      "Dan Brown"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Extraordinário?",
+    "opcoes": [
+      "R. J. Palacio",
+      "John Green",
+      "Zusak",
+      "Rowling"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o garoto de Extraordinário?",
+    "opcoes": [
+      "Auggie",
+      "Charlie",
+      "Greg",
+      "Percy"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Coraline?",
+    "opcoes": [
+      "Neil Gaiman",
+      "King",
+      "Poe",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu It: A Coisa?",
+    "opcoes": [
+      "Stephen King",
+      "Poe",
+      "Lovecraft",
+      "Stoker"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Misery?",
+    "opcoes": [
+      "Stephen King",
+      "Lovecraft",
+      "Poe",
+      "Orwell"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Carrie?",
+    "opcoes": [
+      "Stephen King",
+      "Poe",
+      "Lovecraft",
+      "Verne"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem é o fiel escudeiro de Dom Quixote?",
+    "opcoes": [
+      "Sancho Pança",
+      "Rony",
+      "Sam",
+      "Watson"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu A Divina Comédia?",
+    "opcoes": [
+      "Dante Alighieri",
+      "Camões",
+      "Cervantes",
+      "Shakespeare"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Os Miseráveis?",
+    "opcoes": [
+      "Victor Hugo",
+      "Verne",
+      "Poe",
+      "Twain"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu O Conde de Monte Cristo?",
+    "opcoes": [
+      "Alexandre Dumas",
+      "Hugo",
+      "Verne",
+      "Poe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Os Três Mosqueteiros?",
+    "opcoes": [
+      "Alexandre Dumas",
+      "Hugo",
+      "Verne",
+      "Poe"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é o lema dos Três Mosqueteiros?",
+    "opcoes": [
+      "Um por todos e todos por um",
+      "Juntos venceremos",
+      "Honra acima de tudo",
+      "Nunca desistir"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Anne de Green Gables?",
+    "opcoes": [
+      "Lucy Maud Montgomery",
+      "Jane Austen",
+      "Louisa May Alcott",
+      "Emily Brontë"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Qual é a cor do cabelo de Anne Shirley?",
+    "opcoes": [
+      "Ruivo",
+      "Loiro",
+      "Castanho",
+      "Preto"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  },
+  {
+    "pergunta": "Quem escreveu Dom Casmurro?",
+    "opcoes": [
+      "Machado de Assis",
+      "José de Alencar",
+      "Clarice Lispector",
+      "Monteiro Lobato"
+    ],
+    "resposta": "A",
+    "categoria": "Literatura fácil"
+  }
+]
