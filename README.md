@@ -155,3 +155,41 @@ bookbot/
 - Python 3.11+
 - Conexão com internet
 - Conta no Discord Developer Portal (gratuito)
+
+## Painéis e embeds personalizados
+
+### Criar embed personalizado
+Use pelo slash command:
+
+```txt
+/embed criar
+```
+
+Ou por prefixo:
+
+```txt
+!embed criar #canal | Título | Descrição | #D8B4FE | imagem_url | thumbnail_url | footer
+```
+
+Campos opcionais podem ficar vazios. Exemplo:
+
+```txt
+!embed criar #comandos | 📖 Central de Comandos | Use !ajuda para ver todos os comandos da Ivy. | #D8B4FE
+```
+
+### Criar painel de cargos
+Use:
+
+```txt
+/painel cargos
+```
+
+Ou:
+
+```txt
+!painel cargos #cargos | 🌷 Escolha seus cargos! | Clique nos botões abaixo para receber ou remover cargos do seu perfil. | #D8B4FE | imagem_url
+```
+
+O painel mostra todos os cargos disponíveis e cria botões. Quando a pessoa clica, o cargo é adicionado ao perfil dela. Clicando de novo, o cargo é removido.
+
+Importante: o cargo da Ivy precisa estar acima dos cargos que ela vai entregar e o bot precisa da permissão **Gerenciar cargos**.

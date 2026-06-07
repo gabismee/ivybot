@@ -57,6 +57,8 @@ class BookBot(commands.Bot):
             "cogs.welcome",
             "cogs.roleplay",
             "cogs.lembretes",
+            "cogs.painel",
+            "cogs.embed_builder",
         ]
         for cog in cogs:
             try:
