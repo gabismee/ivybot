@@ -2,60 +2,98 @@ import discord, asyncio
 from discord import app_commands
 from discord.ext import commands, tasks
 from datetime import datetime
-from utils.api import buscar_livros, gerar_links_compra, buscar_precos
-from utils.embeds import FOOTER, formato_preco
-from utils.db import get_config, registrar_preco
+from utils.api import buscar_livros, gerar_links_compra
+from utils.db import get_config, wishlist_com_alerta, registrar_notificacao_wishlist
+from utils.embeds import formato_preco, CORES
 
-LIVROS_MONITORADOS=["Harry Potter","Duna","1984","A Menina que Roubava Livros","Jogos Vorazes","O Pequeno Príncipe","Coraline","Dom Casmurro"]
+LIVROS_MONITORADOS=['romance brasileiro','fantasia em português','literatura brasileira','young adult português','mangá português','clássicos brasileiros','ficção científica português']
 
 class Promocoes(commands.Cog):
     def __init__(self, bot): self.bot=bot; self.verificar_promocoes.start()
     def cog_unload(self): self.verificar_promocoes.cancel()
-
     @tasks.loop(hours=6)
     async def verificar_promocoes(self):
         await self.bot.wait_until_ready()
         for guild in self.bot.guilds:
-            cfg=get_config(guild.id); canal_id=cfg.get('canal_promocoes')
-            if canal_id and (canal:=guild.get_channel(canal_id)): await self._postar_promocoes(canal)
+            cid=get_config(guild.id).get('canal_promocoes')
+            canal=guild.get_channel(cid) if cid else None
+            if canal: await self._postar_promocoes(canal)
+        await self._avisar_wishlist_promocoes()
+
+    async def _avisar_wishlist_promocoes(self):
+        # Verifica alertas de preço da lista Quero Ler. Depende da API retornar preço.
+        for item in wishlist_com_alerta():
+            try:
+                resultados = await buscar_livros(item['titulo'], 3, lang='pt')
+                alvo = float(item.get('preco_alvo') or 0)
+                for livro in resultados:
+                    preco = livro.get('preco')
+                    if not preco or float(preco) > alvo:
+                        continue
+                    isbn = item.get('isbn') or livro.get('isbn') or item['titulo']
+                    url = livro.get('buy_link') or gerar_links_compra(livro)[0]['url']
+                    if not registrar_notificacao_wishlist(item['user_id'], isbn, livro.get('titulo') or item['titulo'], float(preco), url):
+                        continue
+                    user = self.bot.get_user(item['user_id']) or await self.bot.fetch_user(item['user_id'])
+                    e = discord.Embed(
+                        title='🔔 Livro da sua lista entrou no preço!',
+                        description=f"**{livro.get('titulo', item['titulo'])}**\n💰 {formato_preco(preco, livro.get('moeda','BRL'))}\n🎯 Seu alerta: {formato_preco(alvo)}\n[Ver/Comprar]({url})",
+                        color=CORES['rosa'],
+                        timestamp=datetime.utcnow()
+                    )
+                    if livro.get('capa_url'):
+                        e.set_thumbnail(url=livro['capa_url'])
+                    e.set_footer(text='Ivy 📚 • Feito pela Gabi 🌷')
+                    try: await user.send(embed=e)
+                    except Exception: pass
+                    break
+            except Exception:
+                continue
 
     async def _postar_promocoes(self, canal):
-        e=discord.Embed(title='🔥 Promoções/Livros em destaque — Ivy', description='Preços quando encontrados via APIs gratuitas.', color=discord.Color.red(), timestamp=datetime.utcnow())
-        for titulo in LIVROS_MONITORADOS[:5]:
-            try:
-                res=await buscar_livros(titulo,1)
-                if not res: continue
-                l=res[0]; precos=await buscar_precos(l.get('titulo',''), l.get('autor',''), l.get('isbn',''))
-                links=precos+gerar_links_compra(l); melhor=precos[0] if precos else ({'preco':l.get('preco'),'url':l.get('buy_link'),'loja':l.get('loja_preco') or 'Google Books'} if l.get('preco') else None)
-                if melhor and melhor.get('preco') and l.get('isbn'): registrar_preco(l.get('isbn'), melhor.get('loja','Loja'), melhor['preco'], melhor.get('url',''))
-                price=f"💰 **{formato_preco(melhor['preco'])}** — {melhor.get('loja')}\n[Comprar]({melhor.get('url')})" if melhor and melhor.get('preco') else f"💰 Preço não encontrado\n[Ver opções]({links[0]['url']})"
-                e.add_field(name=f"📚 {l['titulo'][:45]}", value=f"✍️ {l.get('autor','')}\n{price}", inline=False)
-                await asyncio.sleep(1)
-            except Exception: continue
-        e.set_footer(text=FOOTER)
+        e=await self._montar_embed('livros em português', '')
         try: await canal.send(embed=e)
         except discord.Forbidden: pass
-
-    @app_commands.command(name='promocoes', description='🔥 Mostra livros em destaque com preço quando disponível')
-    async def promocoes(self, interaction, genero:str=''):
-        await interaction.response.defer(); query=f'{genero} livros' if genero else 'livros bestsellers'
-        resultados=await buscar_livros(query,8)
-        if not resultados: return await interaction.followup.send(embed=discord.Embed(description='Não encontrei promoções agora.', color=discord.Color.orange()))
-        e=discord.Embed(title=f"🔥 Livros em Destaque{' — '+genero if genero else ''}", color=discord.Color.red(), timestamp=datetime.utcnow())
-        for l in resultados[:6]:
-            precos=await buscar_precos(l.get('titulo',''), l.get('autor',''), l.get('isbn',''))
-            links=precos+gerar_links_compra(l)
-            melhor=precos[0] if precos else ({'preco':l.get('preco'),'url':l.get('buy_link'),'loja':l.get('loja_preco') or 'Google Books'} if l.get('preco') else None)
-            texto=f"✍️ {l.get('autor','')}\n"
-            if melhor and melhor.get('preco'): texto+=f"💰 **{formato_preco(melhor['preco'])}** — {melhor.get('loja')}\n[Comprar]({melhor.get('url')})"
-            else: texto+=f"[Ver preços 🛒]({links[0]['url']})"
-            e.add_field(name=f"📚 {l['titulo'][:45]}", value=texto, inline=True)
-        e.set_footer(text=FOOTER); await interaction.followup.send(embed=e)
-
+    async def _montar_embed(self, query, limite):
+        livros=await buscar_livros(query,10,lang='pt')
+        e=discord.Embed(title='🔥 Promoções/Livros em português', description='Separado por faixas de preço quando a API retorna preço. Quando não retorna, deixo link de busca BR.', color=CORES['laranja'], timestamp=datetime.utcnow())
+        grupos={'Até R$30':[], 'Até R$50':[], 'Até R$100':[], 'Sem preço na API':[]}
+        for l in livros:
+            p=l.get('preco')
+            item=f"**{l['titulo'][:45]}**\n✍️ {l.get('autor','—')[:45]}"
+            if p: item += f"\n💰 {formato_preco(p,l.get('moeda','BRL'))}"
+            links=gerar_links_compra(l); item += f"\n[Ver/Comprar]({(l.get('buy_link') or links[0]['url'])})"
+            if p and p<=30: grupos['Até R$30'].append(item)
+            elif p and p<=50: grupos['Até R$50'].append(item)
+            elif p and p<=100: grupos['Até R$100'].append(item)
+            else: grupos['Sem preço na API'].append(item)
+            if l.get('capa_url') and not e.thumbnail.url: e.set_thumbnail(url=l['capa_url'])
+        for nome,items in grupos.items():
+            if items: e.add_field(name=nome, value='\n\n'.join(items[:3])[:1000], inline=False)
+        e.set_footer(text='Ivy 📚 • Feito pela Gabi 🌷'); return e
+    @app_commands.command(name='promocoes', description='🔥 Livros em português por faixa de preço')
+    @app_commands.choices(faixa=[app_commands.Choice(name='Até R$30',value='30'),app_commands.Choice(name='Até R$50',value='50'),app_commands.Choice(name='Até R$100',value='100')])
+    async def promocoes(self, interaction, genero:str='', faixa:str=''):
+        await interaction.response.defer(); q=(genero+' livros em português') if genero else 'livros em português brasileiros'
+        await interaction.followup.send(embed=await self._montar_embed(q, faixa))
     @app_commands.command(name='gratuitos', description='📱 Livros gratuitos em domínio público')
     async def gratuitos(self, interaction):
-        e=discord.Embed(title='📚 Livros Gratuitos — Domínio Público', description='Fontes gratuitas e confiáveis:', color=discord.Color.green())
-        for nome,url,desc in [("📖 Domínio Público","http://www.dominiopublico.gov.br","Obras clássicas"),("🌐 Project Gutenberg","https://www.gutenberg.org","Ebooks gratuitos"),("🗄️ Internet Archive","https://archive.org/details/texts","Acervo digital")]:
-            e.add_field(name=nome,value=f"[Acessar]({url})\n{desc}",inline=True)
-        e.set_footer(text=FOOTER); await interaction.response.send_message(embed=e)
+        e=discord.Embed(title='📚 Livros gratuitos em português', description='Fontes confiáveis para achar livros gratuitos:', color=CORES['verde'])
+        fontes=[('Domínio Público (Gov BR)','http://www.dominiopublico.gov.br'),('Brasiliana USP','https://www.brasiliana.usp.br'),('Scielo Books','https://books.scielo.org'),('Biblioteca Nacional Digital','https://bndigital.bn.gov.br')]
+        for n,u in fontes: e.add_field(name=n,value=f'[Acessar]({u})',inline=True)
+        await interaction.response.send_message(embed=e)
+    @commands.command(name='promocoes', aliases=['promoções'])
+    async def promocoes_prefix(self, ctx, faixa:str='', *, genero:str=''):
+        # Ex.: !promocoes 30 fantasia / !promocoes romance
+        if faixa and not faixa.isdigit():
+            genero = (faixa + ' ' + genero).strip(); faixa=''
+        q=(genero+' livros em português') if genero else 'livros em português brasileiros'
+        await ctx.send(embed=await self._montar_embed(q, faixa))
+    @commands.command(name='gratuitos')
+    async def gratuitos_prefix(self, ctx):
+        e=discord.Embed(title='📚 Livros gratuitos em português', description='Fontes confiáveis para achar livros gratuitos:', color=CORES['verde'])
+        fontes=[('Domínio Público (Gov BR)','http://www.dominiopublico.gov.br'),('Brasiliana USP','https://www.brasiliana.usp.br'),('Scielo Books','https://books.scielo.org'),('Biblioteca Nacional Digital','https://bndigital.bn.gov.br')]
+        for n,u in fontes: e.add_field(name=n,value=f'[Acessar]({u})',inline=True)
+        await ctx.send(embed=e)
+
 async def setup(bot): await bot.add_cog(Promocoes(bot))

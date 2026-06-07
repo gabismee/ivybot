@@ -3,121 +3,81 @@ from discord import app_commands
 from discord.ext import commands
 from utils.api import buscar_livros, gerar_links_compra
 from utils.embeds import embed_wishlist, embed_livro, embed_erro, embed_sucesso
-from utils.db import get_wishlist, adicionar_wishlist, remover_wishlist
+from utils.db import get_wishlist, adicionar_wishlist, remover_wishlist, atualizar_biblioteca, add_xp
 
 class RemoverView(discord.ui.View):
-    def __init__(self, items: list):
-        super().__init__(timeout=60)
-        self.items = items
-
-        opcoes = [
-            discord.SelectOption(
-                label=item["titulo"][:100],
-                description=item.get("autor","")[:50],
-                value=item["isbn"] or item["titulo"],
-                emoji="🗑️"
-            )
-            for item in items[:25]
-        ]
-        select = discord.ui.Select(placeholder="Escolha um livro para remover...", options=opcoes)
-        select.callback = self.on_select
-        self.add_item(select)
-
-    async def on_select(self, interaction: discord.Interaction):
-        isbn = interaction.data["values"][0]
-        titulo = next((i["titulo"] for i in self.items if (i["isbn"] or i["titulo"]) == isbn), isbn)
-        ok = remover_wishlist(interaction.user.id, isbn)
-        if ok:
-            await interaction.response.send_message(
-                embed=embed_sucesso(f"**{titulo}** removido da sua wishlist."), ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                embed=embed_erro("Não foi possível remover."), ephemeral=True
-            )
+    def __init__(self, items):
+        super().__init__(timeout=60); self.items=items
+        opts=[discord.SelectOption(label=i['titulo'][:100], description=i.get('autor','')[:50], value=i.get('isbn') or i['titulo']) for i in items[:25]]
+        s=discord.ui.Select(placeholder='Escolha um livro para remover...', options=opts); s.callback=self.on_select; self.add_item(s)
+    async def on_select(self, interaction):
+        v=interaction.data['values'][0]; ok=remover_wishlist(interaction.user.id, v)
+        await interaction.response.send_message(embed=embed_sucesso('Removido da lista Quero Ler.') if ok else embed_erro('Não consegui remover.'), ephemeral=True)
 
 class Wishlist(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot): self.bot=bot
+    queroler=app_commands.Group(name='queroler', description='📌 Gerencia sua lista Quero Ler')
+    desejo=app_commands.Group(name='desejo', description='📌 Atalho antigo para Quero Ler')
+    async def _adicionar(self, interaction, titulo, preco_alvo=None):
+        await interaction.response.defer(ephemeral=True); r=await buscar_livros(titulo,3,lang='pt')
+        if not r: return await interaction.followup.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
+        ok=adicionar_wishlist(interaction.user.id, r[0], preco_alvo); atualizar_biblioteca(interaction.user.id, r[0], 'quero_ler')
+        if ok: add_xp(interaction.user.id, interaction.user.display_name, 5)
+        await interaction.followup.send(embed=embed_sucesso(f"**{r[0]['titulo']}** adicionado em **Quero Ler**!" if ok else 'Esse livro já está na sua lista.'))
+    @queroler.command(name='adicionar', description='Adiciona livro em Quero Ler')
+    async def adicionar_q(self, interaction:discord.Interaction, titulo:str, preco_alvo:float=None): await self._adicionar(interaction,titulo,preco_alvo)
+    @desejo.command(name='adicionar', description='Adiciona livro em Quero Ler')
+    async def adicionar_d(self, interaction:discord.Interaction, titulo:str, preco_alvo:float=None): await self._adicionar(interaction,titulo,preco_alvo)
+    @queroler.command(name='listar', description='Ver sua lista Quero Ler')
+    async def listar_q(self, interaction): await interaction.response.send_message(embed=embed_wishlist(get_wishlist(interaction.user.id), interaction.user.display_name), ephemeral=True)
+    @desejo.command(name='listar', description='Ver sua lista Quero Ler')
+    async def listar_d(self, interaction): await self.listar_q(interaction)
+    @queroler.command(name='remover', description='Remove livro de Quero Ler')
+    async def remover_q(self, interaction):
+        items=get_wishlist(interaction.user.id)
+        if not items: return await interaction.response.send_message(embed=embed_erro('Sua lista Quero Ler está vazia.'), ephemeral=True)
+        await interaction.response.send_message('Escolha qual livro remover:', view=RemoverView(items), ephemeral=True)
+    @desejo.command(name='remover', description='Remove livro de Quero Ler')
+    async def remover_d(self, interaction): await self.remover_q(interaction)
+    @queroler.command(name='ver', description='Ver detalhes de um item da lista')
+    async def ver_q(self, interaction):
+        items=get_wishlist(interaction.user.id)
+        if not items: return await interaction.response.send_message(embed=embed_erro('Sua lista está vazia.'), ephemeral=True)
+        opts=[discord.SelectOption(label=i['titulo'][:100], description=i.get('autor','')[:50], value=str(n)) for n,i in enumerate(items[:25])]
+        class V(discord.ui.View):
+            def __init__(self): super().__init__(timeout=60); s=discord.ui.Select(placeholder='Escolha...', options=opts); s.callback=self.sel; self.add_item(s)
+            async def sel(self2, inter):
+                item=items[int(inter.data['values'][0])]; livro=dict(item); await inter.response.edit_message(embed=embed_livro(livro, gerar_links_compra(livro)), view=None)
+        await interaction.response.send_message('Escolha um livro:', view=V(), ephemeral=True)
+    @desejo.command(name='ver', description='Ver detalhes de um item da lista')
+    async def ver_d(self, interaction): await self.ver_q(interaction)
+    @commands.group(name='queroler', aliases=['quero-ler','desejo'], invoke_without_command=True)
+    async def queroler_prefix(self, ctx, *, titulo:str=None):
+        if titulo:
+            r=await buscar_livros(titulo,3,lang='pt')
+            if not r: return await ctx.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
+            ok=adicionar_wishlist(ctx.author.id, r[0]); atualizar_biblioteca(ctx.author.id, r[0], 'quero_ler')
+            if ok: add_xp(ctx.author.id, ctx.author.display_name, 5)
+            return await ctx.send(embed=embed_sucesso(f"**{r[0]['titulo']}** adicionado em **Quero Ler**!" if ok else 'Esse livro já está na sua lista.'))
+        await ctx.send(embed=embed_wishlist(get_wishlist(ctx.author.id), ctx.author.display_name))
 
-    desejo = app_commands.Group(name="desejo", description="❤️ Gerencia sua lista de desejos")
+    @queroler_prefix.command(name='adicionar')
+    async def queroler_adicionar_prefix(self, ctx, *, titulo:str=None):
+        if not titulo: return await ctx.send(embed=embed_erro('Use: `!queroler adicionar <livro>`'))
+        r=await buscar_livros(titulo,3,lang='pt')
+        if not r: return await ctx.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
+        ok=adicionar_wishlist(ctx.author.id, r[0]); atualizar_biblioteca(ctx.author.id, r[0], 'quero_ler')
+        if ok: add_xp(ctx.author.id, ctx.author.display_name, 5)
+        await ctx.send(embed=embed_sucesso(f"**{r[0]['titulo']}** adicionado em **Quero Ler**!" if ok else 'Esse livro já está na sua lista.'))
 
-    @desejo.command(name="adicionar", description="Adiciona um livro à sua wishlist")
-    @app_commands.describe(titulo="Título do livro", preco_alvo="Preço desejado para alerta (ex: 29.90)")
-    async def adicionar(self, interaction: discord.Interaction, titulo: str, preco_alvo: float = None):
-        await interaction.response.defer(ephemeral=True)
-        resultados = await buscar_livros(titulo, max_results=3)
-        if not resultados:
-            await interaction.followup.send(embed=embed_erro(f"Livro **{titulo}** não encontrado."))
-            return
+    @queroler_prefix.command(name='listar')
+    async def queroler_listar_prefix(self, ctx):
+        await ctx.send(embed=embed_wishlist(get_wishlist(ctx.author.id), ctx.author.display_name))
 
-        livro = resultados[0]
-        ok = adicionar_wishlist(interaction.user.id, livro, preco_alvo)
-        if ok:
-            msg = f"✅ **{livro['titulo']}** adicionado à wishlist!"
-            if preco_alvo:
-                msg += f"\n🔔 Você será avisado quando o preço cair abaixo de **R$ {preco_alvo:.2f}**"
-            await interaction.followup.send(embed=embed_sucesso(msg))
-        else:
-            await interaction.followup.send(embed=embed_erro("Livro já está na sua wishlist."))
+    @queroler_prefix.command(name='remover')
+    async def queroler_remover_prefix(self, ctx, *, isbn_ou_titulo:str=None):
+        if not isbn_ou_titulo: return await ctx.send(embed=embed_erro('Use: `!queroler remover <isbn ou título>`'))
+        ok=remover_wishlist(ctx.author.id, isbn_ou_titulo)
+        await ctx.send(embed=embed_sucesso('Removido da lista Quero Ler.') if ok else embed_erro('Não encontrei esse item na sua lista.'))
 
-    @desejo.command(name="remover", description="Remove um livro da sua wishlist")
-    async def remover(self, interaction: discord.Interaction):
-        items = get_wishlist(interaction.user.id)
-        if not items:
-            await interaction.response.send_message(
-                embed=embed_erro("Sua wishlist está vazia!"), ephemeral=True
-            )
-            return
-        view = RemoverView(items)
-        await interaction.response.send_message(
-            "Escolha qual livro remover:", view=view, ephemeral=True
-        )
-
-    @desejo.command(name="listar", description="Exibe sua lista de desejos")
-    async def listar(self, interaction: discord.Interaction):
-        items = get_wishlist(interaction.user.id)
-        embed = embed_wishlist(items, interaction.user.display_name)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @desejo.command(name="ver", description="Ver um livro específico da sua wishlist")
-    async def ver(self, interaction: discord.Interaction):
-        items = get_wishlist(interaction.user.id)
-        if not items:
-            await interaction.response.send_message(
-                embed=embed_erro("Sua wishlist está vazia!"), ephemeral=True
-            )
-            return
-        opcoes = [
-            discord.SelectOption(
-                label=item["titulo"][:100],
-                description=item.get("autor","")[:50],
-                value=str(i),
-                emoji="📚"
-            ) for i, item in enumerate(items[:25])
-        ]
-
-        class VerView(discord.ui.View):
-            def __init__(self):
-                super().__init__(timeout=60)
-                select = discord.ui.Select(placeholder="Escolha um livro...", options=opcoes)
-                select.callback = self.on_select
-                self.add_item(select)
-
-            async def on_select(self2, inter: discord.Interaction):
-                idx  = int(inter.data["values"][0])
-                item = items[idx]
-                livro = {
-                    "titulo":   item["titulo"],
-                    "autor":    item.get("autor",""),
-                    "isbn":     item.get("isbn",""),
-                    "capa_url": item.get("capa_url",""),
-                }
-                links = gerar_links_compra(livro)
-                embed = embed_livro(livro, links)
-                await inter.response.edit_message(embed=embed, view=None)
-
-        await interaction.response.send_message("Escolha um livro:", view=VerView(), ephemeral=True)
-
-async def setup(bot):
-    await bot.add_cog(Wishlist(bot))
+async def setup(bot): await bot.add_cog(Wishlist(bot))
