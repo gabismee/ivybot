@@ -16,7 +16,6 @@ async def buscar_livros(query: str, max_results: int = 5) -> list[dict]:
     params = {
         "q": query,
         "maxResults": max_results,
-        "langRestrict": "pt",
         "printType": "books",
         "orderBy": "relevance"
     }
