@@ -20,13 +20,13 @@ intents.message_content = True
 intents.members = True
 intents.dm_messages = True
 
-class IvyBot(commands.Bot):
+class BookBot(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix=PREFIX,
             intents=intents,
             help_command=None,
-            description="📚 Ivy: bot gratuito de livros para Discord"
+            description="📚 Ivy — bot gratuito de livros para Discord"
         )
 
     async def setup_hook(self):
@@ -46,14 +46,17 @@ class IvyBot(commands.Bot):
             "cogs.biblioteca",
             "cogs.clube",
             "cogs.ranking",
-            "cogs.quiz",
-            "cogs.social",
-            "cogs.desafios",
-            "cogs.eventos",
             "cogs.onboarding",
             "cogs.ia",
             "cogs.promocoes",
+            "cogs.quiz",
+            "cogs.social",
+            "cogs.desafios",
+            "cogs.literario",
             "cogs.admin",
+            "cogs.welcome",
+            "cogs.roleplay",
+            "cogs.lembretes",
         ]
         for cog in cogs:
             try:
@@ -70,16 +73,19 @@ class IvyBot(commands.Bot):
         await self.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="📚 /ajuda para começar"
+                name="📚 Ivy — /ajuda"
             )
         )
 
     async def on_member_join(self, member: discord.Member):
+        welcome_cog = self.get_cog("Welcome")
+        if welcome_cog:
+            await welcome_cog.send_welcome(member)
         onboarding_cog = self.get_cog("Onboarding")
         if onboarding_cog:
             await onboarding_cog.iniciar_onboarding(member)
 
-bot = IvyBot()
+bot = BookBot()
 
 if __name__ == "__main__":
     keep_alive()
