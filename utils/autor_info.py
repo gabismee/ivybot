@@ -1,173 +1,233 @@
 """
-Utilitário para buscar informações de autores e personagens via Open Library + Google Books.
+Busca info de autores via Wikipedia API (pt + en) e Google Books.
+Sem chave de API necessária.
 """
-import aiohttp
-import logging
-import re
+import aiohttp, logging, re, urllib.parse
 
 log = logging.getLogger('Ivy.AutorInfo')
 
+# ─── AUTOR ───────────────────────────────────────────────────────────────────
+
 async def buscar_autor(nome: str) -> dict | None:
-    """
-    Busca informações completas de um autor:
-    - Foto, bio, gêneros literários, obras principais.
-    Usa Open Library como fonte principal.
-    """
-    result = await _buscar_open_library_autor(nome)
-    if not result:
-        result = await _buscar_google_autor(nome)
-    return result
-
-
-async def _buscar_open_library_autor(nome: str) -> dict | None:
-    try:
-        async with aiohttp.ClientSession() as s:
-            # Buscar autor pelo nome
-            params = {'q': nome, 'type': '/type/author', 'limit': 1}
-            async with s.get('https://openlibrary.org/search/authors.json', params=params, timeout=aiohttp.ClientTimeout(total=12)) as r:
-                if r.status != 200:
-                    return None
-                data = await r.json()
-                docs = data.get('docs', [])
-                if not docs:
-                    return None
-                autor = docs[0]
-                key = autor.get('key', '')  # ex: OL23919A
-
-            # Buscar detalhes do autor
-            if not key:
-                return None
-            async with s.get(f'https://openlibrary.org/authors/{key}.json', timeout=aiohttp.ClientTimeout(total=12)) as r:
-                if r.status != 200:
-                    return None
-                det = await r.json()
-
-            # Buscar obras do autor
-            obras = []
-            async with s.get(f'https://openlibrary.org/authors/{key}/works.json', params={'limit': 10}, timeout=aiohttp.ClientTimeout(total=12)) as r:
-                if r.status == 200:
-                    wdata = await r.json()
-                    for w in wdata.get('entries', [])[:8]:
-                        t = w.get('title', '')
-                        if t:
-                            obras.append(t)
-
-            nome_real = det.get('name', nome)
-            # Bio pode ser string ou dict {'type':..., 'value':...}
-            bio_raw = det.get('bio', '')
-            if isinstance(bio_raw, dict):
-                bio_raw = bio_raw.get('value', '')
-            bio = _limpar_bio(str(bio_raw))[:700] if bio_raw else ''
-
-            # Data de nascimento
-            nascimento = det.get('birth_date', '')
-            morte = det.get('death_date', '')
-            datas = ''
-            if nascimento:
-                datas = f'{nascimento}'
-                if morte:
-                    datas += f' — {morte}'
-
-            # Foto
-            foto_url = ''
-            fotos = det.get('photos', [])
-            if fotos and fotos[0] > 0:
-                foto_url = f'https://covers.openlibrary.org/a/id/{fotos[0]}-L.jpg'
-
-            # Gêneros/assuntos das obras — tentar pegar dos subject_places/subjects
-            generos = list(set(det.get('subjects', [])[:5]))
-
-            return {
-                'nome': nome_real,
-                'bio': bio,
-                'nascimento': datas,
-                'foto_url': foto_url,
-                'obras': obras,
-                'generos': generos,
-                'fonte': 'Open Library',
-            }
-    except Exception as e:
-        log.error('Erro ao buscar autor no Open Library: %s', e)
-        return None
-
-
-async def _buscar_google_autor(nome: str) -> dict | None:
-    """Fallback: usa Google Books para listar obras do autor."""
-    try:
-        async with aiohttp.ClientSession() as s:
-            params = {'q': f'inauthor:"{nome}"', 'maxResults': 8, 'printType': 'books', 'country': 'BR'}
-            async with s.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=aiohttp.ClientTimeout(total=12)) as r:
-                if r.status != 200:
-                    return None
-                data = await r.json()
-                items = data.get('items', [])
-                if not items:
-                    return None
-
-        obras = []
-        generos = set()
-        for item in items[:8]:
-            info = item.get('volumeInfo', {})
-            t = info.get('title', '')
-            if t:
-                obras.append(t)
-            for g in info.get('categories', []):
-                generos.add(g)
-
+    """Busca foto, bio, nascimento e obras do autor."""
+    info = await _wikipedia_autor(nome, lang='pt')
+    if not info:
+        info = await _wikipedia_autor(nome, lang='en')
+    # Enriquecer obras via Google Books
+    obras = await _obras_google(nome)
+    if info:
+        if obras and not info.get('obras'):
+            info['obras'] = obras
+        return info
+    # Se Wikipedia falhou, monta só com Google Books
+    if obras:
         return {
             'nome': nome,
             'bio': '',
             'nascimento': '',
             'foto_url': '',
             'obras': obras,
-            'generos': list(generos)[:5],
-            'fonte': 'Google Books',
+            'generos': [],
         }
+    return None
+
+
+async def _wikipedia_autor(nome: str, lang: str = 'pt') -> dict | None:
+    """Busca autor na Wikipedia em português ou inglês."""
+    try:
+        async with aiohttp.ClientSession(headers={'User-Agent': 'IvyBot/2.0 Discord Bot'}) as s:
+            # 1. Buscar título da página
+            search_url = f'https://{lang}.wikipedia.org/w/api.php'
+            params = {
+                'action': 'query',
+                'list': 'search',
+                'srsearch': nome,
+                'srnamespace': 0,
+                'srlimit': 1,
+                'format': 'json',
+            }
+            async with s.get(search_url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                results = data.get('query', {}).get('search', [])
+                if not results:
+                    return None
+                page_title = results[0]['title']
+
+            # 2. Buscar extrato + imagem
+            detail_params = {
+                'action': 'query',
+                'prop': 'extracts|pageimages|revisions',
+                'exintro': True,
+                'explaintext': True,
+                'exsentences': 5,
+                'pithumbsize': 300,
+                'titles': page_title,
+                'rvprop': 'content',
+                'rvsection': 0,
+                'format': 'json',
+            }
+            async with s.get(search_url, params=detail_params, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                pages = data.get('query', {}).get('pages', {})
+                if not pages:
+                    return None
+                page = next(iter(pages.values()))
+
+            bio_raw = page.get('extract', '')
+            bio = _limpar_bio(bio_raw)[:700]
+            foto_url = page.get('thumbnail', {}).get('source', '')
+
+            # Extrai datas do infobox via regex no wikitext (campo revisions)
+            nascimento = ''
+            rev = ''
+            for rv in page.get('revisions', []):
+                rev = rv.get('*', '') or rv.get('slots', {}).get('main', {}).get('*', '')
+                if rev:
+                    break
+            m = re.search(r'\|\s*(?:birth_date|data_nascimento)\s*=\s*([^\n|]+)', rev, re.IGNORECASE)
+            if m:
+                nascimento = re.sub(r'\{\{[^}]+\}\}', '', m.group(1)).strip()
+                nascimento = re.sub(r'\s+', ' ', nascimento).strip()
+
+            return {
+                'nome': page_title,
+                'bio': bio,
+                'nascimento': nascimento,
+                'foto_url': foto_url,
+                'obras': [],
+                'generos': [],
+            }
     except Exception as e:
-        log.error('Erro ao buscar autor no Google Books: %s', e)
+        log.error('Erro Wikipedia autor (%s): %s', lang, e)
         return None
 
 
+async def _obras_google(nome: str) -> list[str]:
+    """Busca lista de obras do autor via Google Books."""
+    try:
+        async with aiohttp.ClientSession(headers={'User-Agent': 'IvyBot/2.0'}) as s:
+            params = {'q': f'inauthor:"{nome}"', 'maxResults': 8, 'printType': 'books', 'country': 'BR'}
+            async with s.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                if r.status != 200:
+                    return []
+                data = await r.json()
+                obras = []
+                vistos = set()
+                for item in data.get('items', []):
+                    t = item.get('volumeInfo', {}).get('title', '')
+                    tn = t.lower().strip()
+                    if t and tn not in vistos:
+                        vistos.add(tn)
+                        obras.append(t)
+                return obras[:8]
+    except Exception as e:
+        log.error('Erro Google Books obras: %s', e)
+        return []
+
+
+# ─── PERSONAGEM ───────────────────────────────────────────────────────────────
+
 async def buscar_personagem(nome: str) -> dict | None:
     """
-    Busca informações de um personagem via Open Library / Google Books.
-    Retorna: nome, obra, descrição, imagem da obra (capa).
+    Busca info de personagem via Wikipedia primeiro, depois Google Books.
     """
+    info = await _wikipedia_personagem(nome, lang='pt')
+    if not info:
+        info = await _wikipedia_personagem(nome, lang='en')
+    if info:
+        return info
+    return await _personagem_google(nome)
+
+
+async def _wikipedia_personagem(nome: str, lang: str = 'pt') -> dict | None:
     try:
-        async with aiohttp.ClientSession() as s:
-            # Tenta buscar livros relacionados ao personagem
-            params = {'q': f'"{nome}" character', 'maxResults': 5, 'printType': 'books', 'country': 'BR'}
-            async with s.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=aiohttp.ClientTimeout(total=12)) as r:
+        async with aiohttp.ClientSession(headers={'User-Agent': 'IvyBot/2.0 Discord Bot'}) as s:
+            search_url = f'https://{lang}.wikipedia.org/w/api.php'
+            params = {
+                'action': 'query',
+                'list': 'search',
+                'srsearch': f'{nome} personagem fictício',
+                'srnamespace': 0,
+                'srlimit': 1,
+                'format': 'json',
+            }
+            async with s.get(search_url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                results = data.get('query', {}).get('search', [])
+                if not results:
+                    return None
+                page_title = results[0]['title']
+
+            detail_params = {
+                'action': 'query',
+                'prop': 'extracts|pageimages',
+                'exintro': True,
+                'explaintext': True,
+                'exsentences': 4,
+                'pithumbsize': 300,
+                'titles': page_title,
+                'format': 'json',
+            }
+            async with s.get(search_url, params=detail_params, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                if r.status != 200:
+                    return None
+                data = await r.json()
+                pages = data.get('query', {}).get('pages', {})
+                page = next(iter(pages.values()))
+
+            bio = _limpar_bio(page.get('extract', ''))[:500]
+            foto_url = page.get('thumbnail', {}).get('source', '')
+            if not bio or len(bio) < 30:
+                return None
+
+            return {
+                'nome': page_title,
+                'obra': '',
+                'autor': '',
+                'descricao': bio,
+                'capa_url': foto_url,
+            }
+    except Exception as e:
+        log.error('Erro Wikipedia personagem (%s): %s', lang, e)
+        return None
+
+
+async def _personagem_google(nome: str) -> dict | None:
+    """Fallback: Google Books para personagens."""
+    try:
+        async with aiohttp.ClientSession(headers={'User-Agent': 'IvyBot/2.0'}) as s:
+            params = {'q': nome, 'maxResults': 3, 'printType': 'books', 'country': 'BR'}
+            async with s.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=aiohttp.ClientTimeout(total=10)) as r:
                 if r.status != 200:
                     return None
                 data = await r.json()
                 items = data.get('items', [])
                 if not items:
                     return None
-
-        # Pegar o livro mais relevante
-        item = items[0]
-        info = item.get('volumeInfo', {})
-        titulo = info.get('title', '')
-        autores = ', '.join(info.get('authors', ['Autor desconhecido']))
-        sinopse = info.get('description', '')[:500]
-        thumb = (info.get('imageLinks', {}).get('thumbnail') or info.get('imageLinks', {}).get('smallThumbnail') or '').replace('http://', 'https://')
-
-        return {
-            'nome': nome,
-            'obra': titulo,
-            'autor': autores,
-            'descricao': sinopse,
-            'capa_url': thumb,
-            'fonte': 'Google Books',
-        }
+                info = items[0].get('volumeInfo', {})
+                thumb = (info.get('imageLinks', {}).get('thumbnail') or '').replace('http://', 'https://')
+                return {
+                    'nome': nome,
+                    'obra': info.get('title', ''),
+                    'autor': ', '.join(info.get('authors', [])),
+                    'descricao': (info.get('description') or '')[:400],
+                    'capa_url': thumb,
+                }
     except Exception as e:
-        log.error('Erro ao buscar personagem: %s', e)
+        log.error('Erro Google Books personagem: %s', e)
         return None
 
 
 def _limpar_bio(bio: str) -> str:
-    """Remove marcações wiki/markup da bio."""
-    bio = re.sub(r'\[.*?\]', '', bio)
+    bio = re.sub(r'\[\d+\]', '', bio)        # remove [1], [2] etc
+    bio = re.sub(r'\[.*?\]', '', bio)         # remove [[wikilinks]]
+    bio = re.sub(r'\{.*?\}', '', bio)         # remove {{templates}}
+    bio = re.sub(r'<[^>]+>', '', bio)         # remove HTML tags
     bio = re.sub(r'\s+', ' ', bio).strip()
     return bio
