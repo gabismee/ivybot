@@ -1,12 +1,10 @@
 import discord
-from discord.ext import commands, tasks
-import asyncio
+from discord.ext import commands
 import os
 import logging
-from datetime import datetime
 from keep_alive import keep_alive
+from utils.db import init_db
 
-# ─── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -14,17 +12,14 @@ logging.basicConfig(
 )
 log = logging.getLogger("BookBot")
 
-# ─── Config ────────────────────────────────────────────────────────────────────
 TOKEN = os.getenv("DISCORD_TOKEN", "SEU_TOKEN_AQUI")
 PREFIX = "!"
 
-# ─── Intents ───────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.dm_messages = True
 
-# ─── Bot ───────────────────────────────────────────────────────────────────────
 class BookBot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -35,6 +30,14 @@ class BookBot(commands.Bot):
         )
 
     async def setup_hook(self):
+        # Inicializa banco de dados
+        try:
+            init_db()
+            log.info("✅ Banco de dados inicializado com sucesso")
+        except Exception as e:
+            log.error(f"❌ Erro ao inicializar banco: {e}")
+            raise  # para o bot se o banco não funcionar
+
         # Carrega todos os cogs
         cogs = [
             "cogs.busca",
@@ -55,7 +58,6 @@ class BookBot(commands.Bot):
             except Exception as e:
                 log.error(f"❌ Erro ao carregar {cog}: {e}")
 
-        # Sincroniza slash commands
         synced = await self.tree.sync()
         log.info(f"🔄 {len(synced)} slash commands sincronizados")
 
@@ -69,7 +71,6 @@ class BookBot(commands.Bot):
         )
 
     async def on_member_join(self, member: discord.Member):
-        """Inicia onboarding quando um novo membro entra"""
         onboarding_cog = self.get_cog("Onboarding")
         if onboarding_cog:
             await onboarding_cog.iniciar_onboarding(member)
@@ -77,5 +78,5 @@ class BookBot(commands.Bot):
 bot = BookBot()
 
 if __name__ == "__main__":
-    keep_alive()  # inicia servidor Flask para manter o Render acordado
+    keep_alive()
     bot.run(TOKEN)
