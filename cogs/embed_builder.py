@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.embeds import CORES, FOOTER, embed_sucesso, embed_erro
 from cogs.painel import parse_color
+from utils.media import normalize_media_url
 
 
 class EmbedBuilder(commands.Cog):
@@ -37,7 +38,7 @@ class EmbedBuilder(commands.Cog):
         footer: str | None = None,
     ):
         canal = canal or interaction.channel
-        embed = self.build_embed(titulo, descricao, cor, imagem, thumbnail, footer)
+        embed = await self.build_embed(titulo, descricao, cor, imagem, thumbnail, footer)
         await canal.send(embed=embed)
         await interaction.response.send_message(embed=embed_sucesso(f"Embed enviado em {canal.mention}."), ephemeral=True)
 
@@ -75,8 +76,10 @@ class EmbedBuilder(commands.Cog):
         imagem = partes[3] if len(partes) > 3 and partes[3] else None
         thumbnail = partes[4] if len(partes) > 4 and partes[4] else None
         footer = partes[5] if len(partes) > 5 and partes[5] else None
+        if not imagem and ctx.message.attachments:
+            imagem = ctx.message.attachments[0].url
 
-        embed = self.build_embed(titulo, descricao, cor, imagem, thumbnail, footer)
+        embed = await self.build_embed(titulo, descricao, cor, imagem, thumbnail, footer)
         await canal.send(embed=embed)
         await ctx.send(embed=embed_sucesso(f"Embed enviado em {canal.mention}."))
 
@@ -91,10 +94,12 @@ class EmbedBuilder(commands.Cog):
         )
         await ctx.send(embed=embed_sucesso(texto))
 
-    def build_embed(self, titulo: str, descricao: str, cor: str, imagem: str | None, thumbnail: str | None, footer: str | None):
-        # Converte \n literal em quebra de linha real
-        descricao = descricao.replace('\\n', '\n')
-        titulo = titulo.replace('\\n', '\n')
+    async def build_embed(self, titulo: str, descricao: str, cor: str, imagem: str | None, thumbnail: str | None, footer: str | None):
+        # Permite escrever \n no comando para quebrar linha no embed.
+        descricao = (descricao or ' ').replace('\\n', '\n').replace('\n', '\n')
+        titulo = (titulo or 'Mensagem da Ivy').replace('\\n', ' ').replace('\n', ' ')
+        imagem = await normalize_media_url(imagem)
+        thumbnail = await normalize_media_url(thumbnail)
         embed = discord.Embed(
             title=titulo[:256],
             description=descricao[:4000],
@@ -104,7 +109,7 @@ class EmbedBuilder(commands.Cog):
             embed.set_image(url=imagem)
         if thumbnail:
             embed.set_thumbnail(url=thumbnail)
-        embed.set_footer(text=(footer[:2048] if footer else FOOTER))
+        embed.set_footer(text=((footer or FOOTER).replace('\\n', ' ').replace('\n', ' '))[:2048])
         return embed
 
 

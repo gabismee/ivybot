@@ -1,107 +1,63 @@
-import random, io, os, aiohttp
+import random, io
 import discord
 from discord import app_commands
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from utils.embeds import CORES, FOOTER
+from utils.media import tenor_gif_from_id, tenor_search_gif
 
-# GIFs locais de fallback (usados se TENOR_API_KEY não estiver configurada ou API falhar)
-ROLEPLAY_GIFS_FALLBACK = {
+ROLEPLAY_GIFS = {
     'abracar': [
-        'https://media.tenor.com/5MnRTjHCPKkAAAAC/hug-anime.gif',
-        'https://media.tenor.com/c2NTX7q9AhkAAAAC/anime-hug.gif',
-        'https://media.tenor.com/yw5i_iNFYcYAAAAC/anime-hug-hugs.gif',
-        'https://media.tenor.com/oKiE1lL6FFEAAAAC/animehug.gif',
-        'https://media.tenor.com/3h0Cz6MnqEEAAAAC/hug-anime-hug.gif',
+        '5299348585618231224',
+        '4606955245193927037',
+        '4492243580644690368',
+        '12099486736811549373',
+        '6816284113184970956',
     ],
     'bater': [
-        'https://media.tenor.com/Bkf3qx7ZlFgAAAAC/zero-no-tsukaima-saito.gif',
-        'https://media.tenor.com/pmJuDyqpNkEAAAAC/anime-baka.gif',
-        'https://media.tenor.com/t5aDInZBkiMAAAAC/anime-hit.gif',
-        'https://media.tenor.com/8DUgGLf5KJAAAAAC/anime-hit-slap.gif',
-        'https://media.tenor.com/NHxL11cVBFwAAAAC/punch.gif',
+        '17655624',
+        '10475156973113460459',
+        '26038183',
+        '16268549',
+        '11426619910221365543',
     ],
     'cafune': [
-        'https://media.tenor.com/2M-r8Dli_UQAAAAC/runa-shirakawa-nikoru-yamana.gif',
-        'https://media.tenor.com/CzdSfF3Kf6cAAAAC/subaru-rem.gif',
-        'https://media.tenor.com/nxRSlnKOiGoAAAAC/pat-head.gif',
-        'https://media.tenor.com/VTaHbyHXclIAAAAC/head-pat.gif',
-        'https://media.tenor.com/2vjJRnDCxZEAAAAC/kaede-azusagawa.gif',
+        '2031603864025875578',
+        '5711182',
+        '17907437',
+        '12375925810041523960',
+        '3422144103984916185',
     ],
     'cafe': [
-        'https://media.tenor.com/nSEyXp-yBagAAAAC/drink-anime.gif',
-        'https://media.tenor.com/Bn4iRDmHYXAAAAAC/anime-tea.gif',
-        'https://media.tenor.com/AhFjZ36pFw4AAAAC/gawain-fgo.gif',
-        'https://media.tenor.com/4DWwI2EQi2sAAAAC/spy-x-family-loid-forger.gif',
-        'https://media.tenor.com/pCXz_vkFhJ8AAAAC/kikis-delivery-service-anime.gif',
+        '25664210',
+        '25510963',
+        '2735753108991467875',
+        '25345197',
+        '16932897',
     ],
     'dancar': [
-        'https://media.tenor.com/uGJlCL9AJoQAAAAC/hare-hare-yukai-haruhi-suzumiya.gif',
-        'https://media.tenor.com/jNJQRrmG0u8AAAAC/jujutsu-kaisen-dance.gif',
-        'https://media.tenor.com/lnFHVUTBtkkAAAAC/tanzen.gif',
-        'https://media.tenor.com/jmP2_KjX7sUAAAAC/oshi-no-ko.gif',
-        'https://media.tenor.com/yvmErk8MXAIAAAAC/shikanoko.gif',
+        '4547293782133915583',
+        '9999828832175336605',
+        '20808263',
+        '27584383',
+        '9491878829582494737',
     ],
 }
 
-# Termos de busca no Tenor para cada ação
-TENOR_QUERIES = {
+ROLEPLAY_SEARCH_TERMS = {
     'abracar': 'anime hug',
-    'bater': 'anime hit slap',
+    'bater': 'anime slap',
     'cafune': 'anime head pat',
-    'cafe': 'anime drinking tea coffee',
+    'cafe': 'anime coffee anime tea',
     'dancar': 'anime dance',
 }
-
 TEXTOS = {
     'abracar': '{autor} abraçou {alvo} bem forte! 💜',
     'bater': '{autor} deu um tapinha de anime em {alvo}! 💥',
     'cafune': '{autor} fez cafuné em {alvo}. 🥺',
     'cafe': '{autor} tomou café/chá com {alvo}. ☕',
-    'dancar': '{autor} dançou com {alvo}! ✨',
+    'dancar': '{autor} dançou com {alvo}! ✨'
 }
-
-TENOR_API_KEY = os.getenv('TENOR_API_KEY', '')
-
-async def _buscar_gif_tenor(acao: str) -> str | None:
-    """Busca um GIF aleatório no Tenor para a ação dada. Retorna URL ou None."""
-    if not TENOR_API_KEY:
-        return None
-    query = TENOR_QUERIES.get(acao, acao)
-    try:
-        async with aiohttp.ClientSession() as s:
-            params = {
-                'q': query,
-                'key': TENOR_API_KEY,
-                'limit': 20,
-                'media_filter': 'gif',
-                'contentfilter': 'medium',
-            }
-            async with s.get('https://tenor.googleapis.com/v2/search', params=params, timeout=aiohttp.ClientTimeout(total=8)) as r:
-                if r.status != 200:
-                    return None
-                data = await r.json()
-                results = data.get('results', [])
-                if not results:
-                    return None
-                item = random.choice(results)
-                # Preferir gif > mediumgif > tinygif
-                formats = item.get('media_formats', {})
-                for fmt in ('gif', 'mediumgif', 'tinygif'):
-                    if fmt in formats:
-                        return formats[fmt].get('url')
-    except Exception:
-        return None
-    return None
-
-
-async def _obter_gif(acao: str) -> str:
-    """Obtém GIF do Tenor (se configurado) ou usa fallback local."""
-    url = await _buscar_gif_tenor(acao)
-    if url:
-        return url
-    return random.choice(ROLEPLAY_GIFS_FALLBACK[acao])
-
 
 class Roleplay(commands.Cog):
     def __init__(self, bot): self.bot = bot
@@ -111,9 +67,24 @@ class Roleplay(commands.Cog):
             texto = f'{autor.mention} fez `{acao}` consigo mesma(o). Autoamor, né?'
         else:
             texto = TEXTOS[acao].format(autor=autor.mention, alvo=alvo.mention if alvo else 'todo mundo')
-        gif_url = await _obter_gif(acao)
+        # Busca o GIF direto pela API do Tenor usando o ID escolhido.
+        # A função usa TENOR_API_KEY do Render ou a chave de teste LIVDSRZULELA.
+        gif_id = random.choice(ROLEPLAY_GIFS[acao])
+        gif_url = await tenor_gif_from_id(gif_id)
+
+        # Se algum ID falhar, tenta busca por termo como plano B.
+        if not gif_url:
+            gif_url = await tenor_search_gif(ROLEPLAY_SEARCH_TERMS.get(acao, 'anime reaction'))
+
         e = discord.Embed(description=texto, color=CORES['roxo'])
-        e.set_image(url=gif_url)
+        if gif_url:
+            e.set_image(url=gif_url)
+        else:
+            e.add_field(
+                name='GIF indisponível',
+                value='Não consegui carregar o GIF agora. Tenta de novo em alguns segundos.',
+                inline=False,
+            )
         e.set_footer(text=FOOTER)
         if hasattr(destino, 'response'):
             await destino.response.send_message(embed=e)
