@@ -58,13 +58,15 @@ class Roleplay(commands.Cog):
             texto = f'{autor.mention} fez `{acao}` consigo mesma(o). Autoamor, né?'
         else:
             texto = TEXTOS[acao].format(autor=autor.mention, alvo=alvo.mention if alvo else 'todo mundo')
+        gif_url = random.choice(ROLEPLAY_GIFS[acao])
         e = discord.Embed(description=texto, color=CORES['roxo'])
-        e.set_image(url=random.choice(ROLEPLAY_GIFS[acao]))
         e.set_footer(text=FOOTER)
+        # Tenor links nem sempre funcionam dentro de set_image().
+        # Enviar o link junto faz o Discord abrir o GIF automaticamente.
         if hasattr(destino, 'response'):
-            await destino.response.send_message(embed=e)
+            await destino.response.send_message(content=gif_url, embed=e)
         else:
-            await destino.send(embed=e)
+            await destino.send(content=gif_url, embed=e)
 
     @app_commands.command(name='abracar', description='💜 Abraça alguém')
     async def abracar(self, interaction, usuario: discord.Member): await self.enviar_acao(interaction, interaction.user, usuario, 'abracar')

@@ -71,11 +71,5 @@ class Busca(commands.Cog):
         r=await buscar_livros(titulo,1,lang='pt')
         if not r: return await ctx.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
         l=r[0]; await ctx.send(embed=embed_livro(l, gerar_links_compra(l)), view=BotaoLivro(l))
-    @commands.command(name='ajuda', aliases=['help','h'])
-    async def ajuda_prefix(self, ctx):
-        embed=discord.Embed(title='📚 Ivy — Comandos', description='Use `/` ou `!` para alguns comandos principais.', color=CORES['roxo'])
-        embed.add_field(name='🔍 Livros', value='`!buscar <termo>` — vários resultados\n`!livro <título>` — detalhes direto\n`/conhecer` ou `!conhecer` — livro aleatório', inline=False)
-        embed.add_field(name='📌 Quero Ler', value='`/queroler adicionar` • `/queroler listar`', inline=False)
-        embed.add_field(name='👤 Perfil', value='`/perfil` • `/perfil-frase` • `/perfil-wallpaper`', inline=False)
-        embed.set_footer(text='Ivy 📚 • Feito pela Gabi 🌷'); await ctx.send(embed=embed)
+
 async def setup(bot): await bot.add_cog(Busca(bot))

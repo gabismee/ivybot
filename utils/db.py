@@ -43,6 +43,8 @@ def init_db():
             status TEXT DEFAULT 'quero_ler', avaliacao INTEGER, comentario TEXT, adicionado TIMESTAMP DEFAULT NOW(), UNIQUE(user_id, isbn)
         );
         ALTER TABLE biblioteca ADD COLUMN IF NOT EXISTS comentario TEXT;
+        ALTER TABLE biblioteca ADD COLUMN IF NOT EXISTS pagina_atual INTEGER DEFAULT 0;
+        ALTER TABLE biblioteca ADD COLUMN IF NOT EXISTS total_paginas INTEGER DEFAULT 0;
         CREATE TABLE IF NOT EXISTS avaliacoes (
             id SERIAL PRIMARY KEY, user_id BIGINT, isbn TEXT, titulo TEXT, autor TEXT, estrelas INTEGER,
             comentario TEXT, avaliado_em TIMESTAMP DEFAULT NOW(), UNIQUE(user_id, isbn)
@@ -126,11 +128,30 @@ def get_biblioteca(user_id:int, status:str=None):
         else: cur.execute("SELECT * FROM biblioteca WHERE user_id=%s ORDER BY adicionado DESC", (user_id,))
         return [dict(r) for r in cur.fetchall()]
 
-def atualizar_biblioteca(user_id:int, livro:dict, status:str):
+def atualizar_biblioteca(user_id:int, livro:dict, status:str, pagina_atual:int=None, total_paginas:int=None):
     try:
         with get_db() as conn:
-            cur=conn.cursor(); cur.execute("""INSERT INTO biblioteca (user_id,titulo,autor,isbn,capa_url,status) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT(user_id,isbn) DO UPDATE SET status=EXCLUDED.status, capa_url=EXCLUDED.capa_url, adicionado=NOW()""", (user_id, livro['titulo'], livro.get('autor',''), livro.get('isbn') or livro['titulo'], livro.get('capa_url',''), status)); return True
-    except Exception: return False
+            cur=conn.cursor()
+            paginas = int(livro.get('paginas') or 0) if total_paginas is None else int(total_paginas or 0)
+            atual = int(pagina_atual or 0)
+            cur.execute("""INSERT INTO biblioteca (user_id,titulo,autor,isbn,capa_url,status,pagina_atual,total_paginas)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT(user_id,isbn) DO UPDATE SET status=EXCLUDED.status, capa_url=EXCLUDED.capa_url,
+            pagina_atual=CASE WHEN EXCLUDED.pagina_atual > 0 THEN EXCLUDED.pagina_atual ELSE biblioteca.pagina_atual END,
+            total_paginas=CASE WHEN EXCLUDED.total_paginas > 0 THEN EXCLUDED.total_paginas ELSE biblioteca.total_paginas END,
+            adicionado=NOW()""", (user_id, livro['titulo'], livro.get('autor',''), livro.get('isbn') or livro['titulo'], livro.get('capa_url',''), status, atual, paginas))
+            return True
+    except Exception:
+        return False
+
+def atualizar_pagina_livro(user_id:int, titulo_ou_isbn:str, pagina_atual:int, status:str=None):
+    with get_db() as conn:
+        cur=conn.cursor()
+        if status:
+            cur.execute("""UPDATE biblioteca SET pagina_atual=%s, status=%s WHERE user_id=%s AND (LOWER(titulo) LIKE LOWER(%s) OR isbn=%s)""", (pagina_atual, status, user_id, f'%{titulo_ou_isbn}%', titulo_ou_isbn))
+        else:
+            cur.execute("""UPDATE biblioteca SET pagina_atual=%s WHERE user_id=%s AND (LOWER(titulo) LIKE LOWER(%s) OR isbn=%s)""", (pagina_atual, user_id, f'%{titulo_ou_isbn}%', titulo_ou_isbn))
+        return cur.rowcount > 0
 
 def avaliar_livro(user_id:int, livro:dict, estrelas:int, comentario:str=""):
     try:

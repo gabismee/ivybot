@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.api import buscar_livros
 from utils.embeds import embed_biblioteca, embed_erro, embed_sucesso, estrelas, CORES
-from utils.db import get_biblioteca, atualizar_biblioteca, avaliar_livro, get_stats_usuario, get_perfil, atualizar_perfil_visual, add_xp, checkin_leitura
+from utils.db import get_biblioteca, atualizar_biblioteca, avaliar_livro, get_stats_usuario, get_perfil, atualizar_perfil_visual, add_xp, checkin_leitura, atualizar_pagina_livro
 from utils.profile_card import gerar_profile_card, gerar_estante_card
 
 STATUS_CHOICES=[app_commands.Choice(name='📌 Quero Ler',value='quero_ler'),app_commands.Choice(name='📖 Lendo',value='lendo'),app_commands.Choice(name='✅ Lido',value='lido'),app_commands.Choice(name='❤️ Favorito',value='favorito'),app_commands.Choice(name='🗑️ Abandonado',value='abandonado')]
@@ -13,10 +13,10 @@ class Biblioteca(commands.Cog):
     estante=app_commands.Group(name='estante', description='📚 Gerencia sua estante pessoal')
     @estante.command(name='adicionar', description='Adiciona um livro à estante')
     @app_commands.choices(status=STATUS_CHOICES)
-    async def adicionar(self, interaction:discord.Interaction, titulo:str, status:str='quero_ler'):
+    async def adicionar(self, interaction:discord.Interaction, titulo:str, status:str='quero_ler', pagina_atual:int=0):
         await interaction.response.defer(ephemeral=True); r=await buscar_livros(titulo,1,lang='pt')
         if not r: return await interaction.followup.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
-        atualizar_biblioteca(interaction.user.id, r[0], status)
+        atualizar_biblioteca(interaction.user.id, r[0], status, pagina_atual=pagina_atual)
         if status=='lido': add_xp(interaction.user.id, interaction.user.display_name, 50)
         await interaction.followup.send(embed=embed_sucesso(f"**{r[0]['titulo']}** adicionado como **{status.replace('_',' ').title()}**!"))
     @estante.command(name='ver', description='Vê sua estante em imagem')
@@ -28,6 +28,25 @@ class Biblioteca(commands.Cog):
             await interaction.followup.send(file=discord.File(img, filename='estante.png'))
         else:
             await interaction.followup.send(embed=embed_biblioteca(itens, interaction.user.display_name, status or 'todos'))
+
+    @estante.command(name='pagina', description='Atualiza a página em que você está/parou')
+    @app_commands.choices(status=STATUS_CHOICES)
+    async def pagina(self, interaction:discord.Interaction, titulo:str, pagina_atual:int, status:str=None):
+        ok = atualizar_pagina_livro(interaction.user.id, titulo, pagina_atual, status)
+        if not ok:
+            return await interaction.response.send_message(embed=embed_erro('Não achei esse livro na sua estante. Adicione ele primeiro.'), ephemeral=True)
+        extra = f' e status **{status.replace("_", " ").title()}**' if status else ''
+        await interaction.response.send_message(embed=embed_sucesso(f'Página atualizada para **{pagina_atual}**{extra}!'), ephemeral=True)
+
+    @commands.command(name='pagina', aliases=['página'])
+    async def pagina_prefix(self, ctx, pagina_atual:int=None, *, titulo:str=None):
+        if pagina_atual is None or not titulo:
+            return await ctx.send(embed=embed_erro('Use: `!pagina <número> <título>`'))
+        ok = atualizar_pagina_livro(ctx.author.id, titulo, pagina_atual)
+        if not ok:
+            return await ctx.send(embed=embed_erro('Não achei esse livro na sua estante. Adicione ele primeiro.'))
+        await ctx.send(embed=embed_sucesso(f'Página atualizada para **{pagina_atual}**!'))
+
     @estante.command(name='stats', description='Estatísticas da sua leitura')
     async def stats(self, interaction:discord.Interaction):
         todos=get_biblioteca(interaction.user.id); stats=get_stats_usuario(interaction.user.id); cont={}
@@ -71,11 +90,19 @@ class Biblioteca(commands.Cog):
         atualizar_perfil_visual(interaction.user.id, interaction.user.display_name, wallpaper_url='')
         await interaction.response.send_message(embed=embed_sucesso('Wallpaper padrão restaurado!'), ephemeral=True)
     async def _add_estante_prefix(self, ctx, status, titulo):
+        pagina = 0
+        if titulo and '|' in titulo:
+            partes = titulo.rsplit('|', 1)
+            titulo = partes[0].strip()
+            try:
+                pagina = int(partes[1].strip())
+            except Exception:
+                pagina = 0
         if not titulo:
             return await ctx.send(embed=embed_erro(f'Use: `!{status.replace("_", "")} <título>`'))
         r=await buscar_livros(titulo,1,lang='pt')
         if not r: return await ctx.send(embed=embed_erro(f'Livro **{titulo}** não encontrado.'))
-        atualizar_biblioteca(ctx.author.id, r[0], status)
+        atualizar_biblioteca(ctx.author.id, r[0], status, pagina_atual=pagina)
         if status=='lido': add_xp(ctx.author.id, ctx.author.display_name, 50)
         if status=='favorito': add_xp(ctx.author.id, ctx.author.display_name, 15)
         await ctx.send(embed=embed_sucesso(f"**{r[0]['titulo']}** adicionado como **{status.replace('_',' ').title()}**!"))
