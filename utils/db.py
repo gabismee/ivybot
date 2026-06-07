@@ -7,7 +7,7 @@ import os
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres:f8gIFDuUaohPky5T@db.nvxahdngihjzbjkcdcvb.supabase.co:5432/postgres"
+    "postgresql://postgres.nvxahdngihjzbjkcdcvb:f8gIFDuUaohPky5T@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
 )
 
 @contextmanager
